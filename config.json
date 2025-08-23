@@ -1,3 +1,4 @@
 {
-    "model_path": "./chinese-clip-vit-base-patch16"
+    "model_path": "chinese-clip-vit-base-patch16",
+    "image_base_dir": "/Users/user/Dev/SearchStickers/stickers"
 }

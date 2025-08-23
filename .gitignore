@@ -1,4 +1,21 @@
+# 素材
 SavedStickers/
+
+# 模型文件夹
 chinese-clip-vit-base-patch16/
 chinese-clip-vit-large-patch14/
 chinese-clip-rn50/
+
+# Python 相关
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.pytest_cache/
+
+# macOS
+.DS_Store

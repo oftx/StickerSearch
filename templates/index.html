@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语义素材搜索</title>
+    <style>
+        /* --- Material Design 3 Inspired Color Palette & Variables --- */
+        :root {
+            --md-sys-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            
+            /* Light Theme */
+            --md-sys-primary: #005ac1;
+            --md-sys-on-primary: #ffffff;
+            --md-sys-primary-container: #d8e2ff;
+            --md-sys-on-primary-container: #001a41;
+            --md-sys-surface: #fdfbff;
+            --md-sys-surface-container: #f0f2f5;
+            --md-sys-on-surface: #1b1b1f;
+            --md-sys-on-surface-variant: #44474f;
+            --md-sys-outline: #c4c6d0;
+            --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1);
+
+            /* Shape & Animation */
+            --border-radius-large: 28px;
+            --border-radius-medium: 16px;
+            --border-radius-small: 8px;
+            --transition-duration: 0.3s;
+            --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --md-sys-primary: #adc6ff;
+                --md-sys-on-primary: #002e69;
+                --md-sys-primary-container: #004494;
+                --md-sys-on-primary-container: #d8e2ff;
+                --md-sys-surface: #121316;
+                --md-sys-surface-container: #1b1b1f;
+                --md-sys-on-surface: #e3e2e6;
+                --md-sys-on-surface-variant: #c4c6d0;
+                --md-sys-outline: #8e9099;
+                --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: var(--md-sys-font-family);
+            background-color: var(--md-sys-surface-container);
+            color: var(--md-sys-on-surface);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color var(--transition-duration), color var(--transition-duration);
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            padding: 16px;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .settings-btn {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 24px;
+            color: var(--md-sys-on-surface-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color var(--transition-duration), transform var(--transition-duration);
+        }
+        .settings-btn:hover { 
+            background-color: rgba(0,0,0,0.08); 
+            transform: rotate(60deg);
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--md-sys-primary);
+            margin-bottom: 2.5rem;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 2.5rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            position: relative;
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 18px 60px 18px 24px;
+            font-size: 1.1rem;
+            border: 2px solid var(--md-sys-outline);
+            border-radius: var(--border-radius-large);
+            background-color: var(--md-sys-surface);
+            color: var(--md-sys-on-surface);
+            outline: none;
+            transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
+        }
+        .search-input:focus {
+            border-color: var(--md-sys-primary);
+            box-shadow: 0 0 0 4px var(--md-sys-primary-container);
+        }
+
+        .search-button {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: transparent;
+            color: var(--md-sys-primary);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            transition: background-color var(--transition-duration), transform var(--transition-duration);
+        }
+        .search-button:hover { transform: translateY(-50%) scale(1.05); }
+        .search-button:active { transform: translateY(-50%) scale(0.95); }
+        
+        .options-bar {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 0;
+            background-color: var(--md-sys-surface);
+            padding: 12px 16px;
+            border-radius: var(--border-radius-large); 
+            border: 2px solid var(--md-sys-outline);
+            gap: 8px;
+            color: var(--md-sys-on-surface-variant);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: box-shadow var(--transition-duration), border-color var(--transition-duration);
+            flex-shrink: 0;
+        }
+        .options-bar:focus-within {
+             box-shadow: 0 0 0 4px var(--md-sys-primary-container);
+             border-color: var(--md-sys-primary);
+        }
+        .options-bar label { font-size: 0.9rem; }
+        .options-bar input[type="number"] {
+            width: 50px;
+            border: none;
+            background: transparent;
+            color: var(--md-sys-on-surface);
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 4px;
+            -moz-appearance: textfield;
+        }
+        .options-bar input[type="number"]::-webkit-outer-spin-button,
+        .options-bar input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .options-bar input[type="number"]:focus { outline: none; }
+
+
+        .results-container {
+            width: 80%;
+            /* --- MODIFIED: Reduced max-width for a more compact 3-column layout --- */
+            max-width: 1200px; 
+            margin: 20px auto;
+            padding: 0 24px;
+        }
+
+        /* --- Adjusted Search Results Layout --- */
+        .search-results {
+            column-count: 3;
+            column-gap: 16px; /* Consistent horizontal gap */
+        }
+
+        .result-item {
+            margin: 0 0 16px;
+            background-color: var(--md-sys-surface);
+            border-radius: var(--border-radius-medium);
+            overflow: hidden;
+            box-shadow: var(--md-sys-shadow);
+            opacity: 0;
+            animation: fadeIn 0.5s var(--transition-easing) forwards;
+            transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing);
+            position: relative;
+            break-inside: avoid;
+            margin-bottom: 16px; /* Consistent vertical gap */
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 992px) {
+            .search-results { column-count: 2; column-gap: 16px; }
+        }
+        @media (max-width: 768px) {
+            .search-results { column-count: 2; column-gap: 16px; }
+        }
+        @media (max-width: 600px) {
+            .search-results { column-count: 2; column-gap: 16px; }
+        }
+        @media (max-width: 480px) {
+            .search-results { column-count: 1; column-gap: 0; margin-left: 0; margin-right: 0; }
+            .result-item { margin-bottom: 16px; }
+        }
+
+        .result-item:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .result-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            background-color: #eee;
+        }
+        
+        .result-item figcaption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 16px 16px;
+            font-size: 0.9em;
+            text-align: center;
+            color: #ffffff;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity var(--transition-duration) var(--transition-easing), 
+                        transform var(--transition-duration) var(--transition-easing),
+                        visibility var(--transition-duration);
+        }
+        .result-item:hover figcaption {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .status-message {
+            margin-top: 2rem;
+            font-size: 1.1rem;
+            color: var(--md-sys-on-surface-variant);
+        }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity var(--transition-duration), visibility var(--transition-duration); }
+        .modal.is-open { opacity: 1; visibility: visible; }
+        .modal-content { background-color: var(--md-sys-surface); padding: 32px; border-radius: var(--border-radius-large); width: 90%; max-width: 550px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform var(--transition-duration) var(--transition-easing); }
+        .modal.is-open .modal-content { transform: scale(1); }
+        .close-btn { color: var(--md-sys-on-surface-variant); position: absolute; top: 16px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; transition: color var(--transition-duration); }
+        .close-btn:hover { color: var(--md-sys-on-surface); }
+        .modal-content h2 { margin-top: 0; }
+        .modal-content input[type="text"], .modal-content button { width: 100%; padding: 12px 16px; font-size: 1rem; border-radius: var(--border-radius-small); border: 1px solid var(--md-sys-outline); }
+        .modal-content button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; cursor: pointer; margin-top: 1rem; transition: background-color var(--transition-duration); }
+        .modal-content button:hover { background-color: #004494; }
+        
+        /* --- MODIFIED: Adjusted responsive breakpoints for the new 3-column base --- */
+        @media (max-width: 992px) { .search-results { column-count: 2; } }
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .search-results { column-count: 2; }
+        }
+        @media (max-width: 600px) {
+            .title { font-size: 2.2rem; }
+            .search-input { padding: 16px 55px 16px 20px; }
+            .search-results { column-count: 2; gap: 16px; }
+            .result-item { margin-bottom: 16px; }
+            .modal-content { padding: 24px; }
+        }
+        @media (max-width: 480px) { .search-results { column-count: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <button class="settings-btn" id="open-settings-modal" title="索引设置">⚙️</button>
+    </header>
+
+    <main class="main-container">
+        <h1 class="title">表情贴纸语义搜索</h1>
+        <div class="search-container">
+            <form id="search-form" class="search-bar">
+                <input type="text" id="query" class="search-input" placeholder="输入中文描述，例如: 夕阳下的海滩" required>
+                <button type="submit" class="search-button" title="搜索">🔍</button>
+            </form>
+            <div class="options-bar">
+                <label for="top_k">返回结果数量:</label>
+                <input type="number" id="top_k" value="12" min="1" max="50">
+            </div>
+        </div>
+        <div class="status-message" id="status-message"></div>
+    </main>
+
+    <div class="results-container">
+        <div class="search-results" id="search-results">
+            <!-- Search results will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-settings-modal">&times;</span>
+            <h2>索引设置</h2>
+            <form id="index-form">
+                <div style="margin-bottom: 1rem;">
+                    <label for="image-dir" style="display: block; margin-bottom: 0.5rem;">图片文件夹路径</label>
+                    <input type="text" id="image-dir" value="./stickers" placeholder="例如: /Users/username/Pictures" required>
+                </div>
+                <button type="submit" id="index-button">开始/更新索引</button>
+            </form>
+            <div id="index-results" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+<script>
+// JavaScript部分与之前版本相同，无需修改。
+document.addEventListener('DOMContentLoaded', () => {
+    const searchForm = document.getElementById('search-form');
+    const statusMessage = document.getElementById('status-message');
+    const searchResults = document.getElementById('search-results');
+    const modal = document.getElementById('settings-modal');
+    const openModalBtn = document.getElementById('open-settings-modal');
+    const closeModalBtn = document.getElementById('close-settings-modal');
+    const indexForm = document.getElementById('index-form');
+    const indexResults = document.getElementById('index-results');
+
+    function openModal() { modal.classList.add('is-open'); }
+    function closeModal() { modal.classList.remove('is-open'); }
+
+    openModalBtn.onclick = openModal;
+    closeModalBtn.onclick = closeModal;
+    modal.onclick = (event) => { if (event.target === modal) closeModal(); };
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+
+    indexForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const imageDir = document.getElementById('image-dir').value;
+        if (!imageDir) { alert('请输入图片文件夹路径!'); return; }
+        const indexButton = document.getElementById('index-button');
+        setLoading(indexButton, indexResults, '正在处理索引，请稍候...');
+        
+        try {
+            const response = await fetch('/api/index', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ image_dir: imageDir })
+            });
+            const data = await response.json();
+            handleApiResponse(data, indexResults, '操作成功', '操作失败');
+        } catch (error) {
+            indexResults.innerHTML = `<p style="color: red;"><strong>网络或服务器错误:</strong> ${error}</p>`;
+        } finally {
+            resetButton(indexButton, '开始/更新索引');
+        }
+    });
+
+    searchForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = document.getElementById('query').value;
+        const topK = document.getElementById('top_k').value;
+        if (!query) { alert('请输入搜索描述!'); return; }
+        const searchButton = document.querySelector('.search-button');
+        
+        statusMessage.textContent = '正在搜索中...';
+        searchResults.innerHTML = '';
+        searchButton.disabled = true;
+
+        const params = new URLSearchParams({ query: query, top_k: topK });
+        
+        try {
+            const response = await fetch(`/api/search?${params.toString()}`);
+            const data = await response.json();
+            
+            statusMessage.textContent = '';
+            
+            if (data.status === 'success') {
+                if (data.results.length === 0) {
+                    statusMessage.textContent = '未找到匹配的图片。';
+                } else {
+                    data.results.forEach((item, index) => {
+                        const resultElement = document.createElement('figure');
+                        resultElement.className = 'result-item';
+                        resultElement.style.animationDelay = `${index * 50}ms`;
+                        resultElement.innerHTML = `
+                            <img src="${item.url}" alt="${item.url}" loading="lazy">
+                            <figcaption>匹配度: ${item.score.toFixed(4)}</figcaption>
+                        `;
+                        searchResults.appendChild(resultElement);
+                    });
+                }
+            } else {
+                statusMessage.innerHTML = `<span style="color: red;"><strong>搜索失败:</strong> ${data.message}</span>`;
+            }
+        } catch (error) {
+            statusMessage.innerHTML = `<span style="color: red;"><strong>网络或服务器错误:</strong> ${error}</span>`;
+        } finally {
+            searchButton.disabled = false;
+        }
+    });
+
+    function setLoading(button, resultArea, message) {
+        button.disabled = true;
+        button.textContent = '处理中...';
+        resultArea.innerHTML = `<p style="font-style: italic; color: var(--md-sys-on-surface-variant);">${message}</p>`;
+    }
+
+    function resetButton(button, text) {
+        button.disabled = false;
+        button.textContent = text;
+    }
+    
+    function handleApiResponse(data, resultArea, successPrefix, errorPrefix) {
+        if (data.status === 'success') {
+            resultArea.innerHTML = `<p style="color: green;"><strong>${successPrefix}:</strong> ${data.summary.message}</p>`;
+        } else {
+            resultArea.innerHTML = `<p style="color: red;"><strong>${errorPrefix}:</strong> ${data.message}</p>`;
+        }
+    }
+});
+</script>
+
+</body>
+</html>

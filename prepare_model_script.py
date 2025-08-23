@@ -145,7 +145,7 @@ if __name__ == "__main__":
         print("下载完成！")
 
         config_data = {"model_path": download_dir}
-        config_filename = "model_config.json"
+        config_filename = "config.json"
         with open(config_filename, "w", encoding="utf-8") as f:
             import json
             json.dump(config_data, f, ensure_ascii=False, indent=4)
