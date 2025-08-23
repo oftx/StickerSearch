@@ -16,6 +16,7 @@ env/
 venv/
 ENV/
 .pytest_cache/
+*.npz
 
 # macOS
 .DS_Store

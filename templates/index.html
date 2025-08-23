@@ -198,17 +198,15 @@
 
 
         .results-container {
-            width: 80%;
-            /* --- MODIFIED: Reduced max-width for a more compact 3-column layout --- */
+            width: min(80%, 800px);
             max-width: 1200px; 
             margin: 20px auto;
             padding: 0 24px;
         }
 
-        /* --- Adjusted Search Results Layout --- */
         .search-results {
             column-count: 3;
-            column-gap: 16px; /* Consistent horizontal gap */
+            column-gap: 16px;
         }
 
         .result-item {
@@ -217,15 +215,13 @@
             border-radius: var(--border-radius-medium);
             overflow: hidden;
             box-shadow: var(--md-sys-shadow);
-            opacity: 0;
-            animation: fadeIn 0.5s var(--transition-easing) forwards;
+            opacity: 1;
             transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing);
             position: relative;
             break-inside: avoid;
-            margin-bottom: 16px; /* Consistent vertical gap */
+            margin-bottom: 16px;
         }
 
-        /* --- Responsive Adjustments --- */
         @media (max-width: 992px) {
             .search-results { column-count: 2; column-gap: 16px; }
         }
@@ -244,9 +240,9 @@
             transform: translateY(-6px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1);
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .result-item img {
+        
+        /* --- 核心修改：让图片和视频表现一致 --- */
+        .result-item img, .result-item video {
             width: 100%;
             height: auto;
             display: block;
@@ -293,7 +289,6 @@
         .modal-content button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; cursor: pointer; margin-top: 1rem; transition: background-color var(--transition-duration); }
         .modal-content button:hover { background-color: #004494; }
         
-        /* --- MODIFIED: Adjusted responsive breakpoints for the new 3-column base --- */
         @media (max-width: 992px) { .search-results { column-count: 2; } }
         @media (max-width: 768px) {
             .search-container {
@@ -327,8 +322,9 @@
                 <button type="submit" class="search-button" title="搜索">🔍</button>
             </form>
             <div class="options-bar">
-                <label for="top_k">返回结果数量:</label>
-                <input type="number" id="top_k" value="12" min="1" max="50">
+                <label for="top_k">给我来</label>
+                <input type="number" id="top_k" value="20" min="1" max="50">
+                <label for="top_k">张</label>
             </div>
         </div>
         <div class="status-message" id="status-message"></div>
@@ -357,7 +353,6 @@
     </div>
 
 <script>
-// JavaScript部分与之前版本相同，无需修改。
 document.addEventListener('DOMContentLoaded', () => {
     const searchForm = document.getElementById('search-form');
     const statusMessage = document.getElementById('status-message');
@@ -421,16 +416,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.results.length === 0) {
                     statusMessage.textContent = '未找到匹配的图片。';
                 } else {
+                    // --- 核心修改从这里开始 ---
                     data.results.forEach((item, index) => {
                         const resultElement = document.createElement('figure');
                         resultElement.className = 'result-item';
                         resultElement.style.animationDelay = `${index * 50}ms`;
+                        
+                        let mediaElement;
+                        // 检查文件扩展名
+                        if (item.url.toLowerCase().endsWith('.webm') || item.url.toLowerCase().endsWith('.mp4')) {
+                            // 如果是 .webm 或 .mp4，创建 <video> 标签
+                            mediaElement = `
+                                <video src="${item.url}" 
+                                       autoplay 
+                                       loop 
+                                       muted 
+                                       playsinline 
+                                       alt="${item.url}">
+                                </video>
+                            `;
+                        } else {
+                            // 否则，创建 <img> 标签
+                            mediaElement = `<img src="${item.url}" alt="${item.url}" loading="lazy">`;
+                        }
+
                         resultElement.innerHTML = `
-                            <img src="${item.url}" alt="${item.url}" loading="lazy">
+                            ${mediaElement}
                             <figcaption>匹配度: ${item.score.toFixed(4)}</figcaption>
                         `;
                         searchResults.appendChild(resultElement);
                     });
+                    // --- 核心修改在这里结束 ---
                 }
             } else {
                 statusMessage.innerHTML = `<span style="color: red;"><strong>搜索失败:</strong> ${data.message}</span>`;

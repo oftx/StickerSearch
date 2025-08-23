@@ -7,3 +7,4 @@ Pillow
 requests
 huggingface-hub
 Flask
+opencv-python

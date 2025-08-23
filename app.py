@@ -13,7 +13,9 @@ def get_persisted_image_dir():
     try:
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
-        return config_data.get('image_base_dir')
+        # 确保返回的是绝对路径，以供后续操作使用
+        abs_path = config_data.get('image_base_dir')
+        return os.path.abspath(abs_path) if abs_path else None
     except (IOError, json.JSONDecodeError):
         return None
 
@@ -76,9 +78,23 @@ def api_search_images():
     try:
         searcher = ImageSearcher()
         results = searcher.search(query=query, top_k=top_k)
-        
+
+        # 遍历搜索结果，处理可能为相对路径的情况
         for item in results:
-            relative_path = os.path.relpath(item['path'], image_base_dir)
+            path_from_index = item['path']
+            
+            # 步骤 1: 确保我们有一个绝对路径
+            # 如果从索引读出的路径不是绝对路径，则根据当前工作目录转换它
+            if not os.path.isabs(path_from_index):
+                absolute_path = os.path.abspath(path_from_index)
+            else:
+                absolute_path = path_from_index
+
+            # 步骤 2: 使用绝对路径来计算相对于图片库根目录的路径，用于生成URL
+            # 这一步现在是安全的，因为 absolute_path 保证是绝对路径
+            relative_path = os.path.relpath(absolute_path, image_base_dir)
+            
+            # 步骤 3: 生成最终的 URL
             item['url'] = url_for('serve_image', filename=relative_path)
 
         return jsonify({"status": "success", "results": results})
