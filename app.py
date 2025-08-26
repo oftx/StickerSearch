@@ -11,10 +11,13 @@ import cv2
 from image_search_core import ImageIndexer, ImageSearcher
 from image_search_core.config import CONFIG_FILE, DEFAULT_IMAGE_DIR
 from image_search_core.utils import copy_file_to_clipboard
-# 1. 导入转换器模块
 from image_search_core.converter import convert_webm_to_gif, convert_webp
 
 app = Flask(__name__)
+
+# --- 新增：定义转换后文件的存放目录 ---
+CONVERTED_DIR = 'stickers_converted'
+
 
 def get_persisted_image_dir():
     """从 config.json 读取并返回持久化的图片根目录。"""
@@ -88,16 +91,14 @@ def api_search_images():
         detailed_results = []
         for item in results:
             path_from_index = item['path']
-            
             absolute_path = os.path.abspath(path_from_index)
-
             if not os.path.exists(absolute_path):
                 continue
             
             relative_path = os.path.relpath(absolute_path, image_base_dir).replace('\\', '/')
             item['path'] = relative_path
             item['url'] = url_for('serve_image', filename=relative_path)
-            item['type'] = os.path.splitext(relative_path)[1].lower() # 添加文件类型
+            item['type'] = os.path.splitext(relative_path)[1].lower()
 
             try:
                 item['filename'] = os.path.basename(absolute_path)
@@ -137,43 +138,49 @@ def api_search_images():
 def api_copy_file():
     """
     API 端点：将文件对象复制到剪贴板。
-    支持 'path' 和 'preferred_format' 参数。
+    根据 'location' 参数从不同目录查找文件。
     """
     data = request.get_json()
-    if not data or 'path' not in data:
+    path = data.get('path')
+    location = data.get('location', 'index') # 'index' or 'converted'
+    preferred_format = data.get('preferred_format')
+
+    if not path:
         return jsonify({"status": "error", "message": "请求体中缺少 'path' 参数。"}), 400
 
-    relative_path = data['path']
-    preferred_format = data.get('preferred_format') # e.g., '.gif'
-    
-    image_base_dir = get_persisted_image_dir()
-    if not image_base_dir:
-        return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
+    path_to_copy = None
 
-    path_to_copy = os.path.join(image_base_dir, relative_path)
+    if location == 'converted':
+        base_dir = os.path.abspath(CONVERTED_DIR)
+        path_to_copy = os.path.join(base_dir, path)
+    else: # Default is 'index'
+        base_dir = get_persisted_image_dir()
+        if not base_dir:
+            return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
+        
+        path_to_copy = os.path.join(base_dir, path)
+        if preferred_format:
+            base, _ = os.path.splitext(path_to_copy)
+            preferred_path = base + preferred_format
+            if os.path.exists(preferred_path):
+                path_to_copy = preferred_path
 
-    if preferred_format:
-        base, _ = os.path.splitext(path_to_copy)
-        preferred_path = base + preferred_format
-        if os.path.exists(preferred_path):
-            path_to_copy = preferred_path
+    if not path_to_copy or not os.path.exists(path_to_copy):
+        return jsonify({"status": "error", "message": f"文件未找到: {path}"}), 404
 
     success, message = copy_file_to_clipboard(path_to_copy)
     
-    # 在成功信息中包含实际拷贝的文件名
     if success:
         message = f"已复制到剪贴板: {os.path.basename(path_to_copy)}"
-
-    if success:
         return jsonify({"status": "success", "message": message, "copied_file": os.path.basename(path_to_copy)})
     else:
         return jsonify({"status": "error", "message": message}), 500
 
-# --- 2. 新增 API：查找同名文件 ---
+
 @app.route('/api/find_relatives', methods=['GET'])
 def api_find_relatives():
     """
-    API 端点：根据给定的文件路径，查找同一目录下所有同基本名的文件。
+    API 端点：查找同一目录下所有同基本名的文件。
     """
     relative_path = request.args.get('path')
     if not relative_path:
@@ -187,20 +194,17 @@ def api_find_relatives():
     directory = os.path.dirname(full_path)
     base_name = os.path.splitext(os.path.basename(full_path))[0]
 
-    # 使用 glob 查找所有匹配的文件
     search_pattern = os.path.join(directory, base_name + ".*")
     found_files = glob.glob(search_pattern)
 
-    # 转换为相对于 image_base_dir 的路径
     relative_files = [os.path.relpath(f, image_base_dir).replace('\\', '/') for f in found_files]
     
     return jsonify({"status": "success", "files": sorted(relative_files)})
 
-# --- 3. 新增 API：执行转换 ---
 @app.route('/api/convert', methods=['POST'])
 def api_convert_file():
     """
-    API 端点：执行文件格式转换。
+    API 端点：执行文件格式转换，并将结果保存到 'stickers_converted' 目录。
     """
     data = request.get_json()
     source_path_rel = data.get('source_path')
@@ -210,6 +214,11 @@ def api_convert_file():
     if not all([source_path_rel, target_format]):
         return jsonify({"status": "error", "message": "缺少 source_path 或 target_format 参数。"}), 400
 
+    # --- 核心修改：确保输出目录存在 ---
+    output_dir_abs = os.path.abspath(CONVERTED_DIR)
+    os.makedirs(output_dir_abs, exist_ok=True)
+    
+    # --- 核心修改：构建源文件和目标文件的路径 ---
     image_base_dir = get_persisted_image_dir()
     if not image_base_dir:
         return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
@@ -218,9 +227,10 @@ def api_convert_file():
     if not os.path.exists(source_path_abs):
         return jsonify({"status": "error", "message": f"源文件不存在: {source_path_rel}"}), 404
 
-    # 构建输出路径
-    base, _ = os.path.splitext(source_path_abs)
-    output_path_abs = base + '.' + target_format.lower()
+    # 构建输出文件名和路径
+    base_name = os.path.splitext(os.path.basename(source_path_rel))[0]
+    new_filename = f"{base_name}.{target_format.lower()}"
+    output_path_abs = os.path.join(output_dir_abs, new_filename)
     
     try:
         source_ext = os.path.splitext(source_path_abs)[1].lower()
@@ -231,10 +241,9 @@ def api_convert_file():
         else:
             return jsonify({"status": "error", "message": f"不支持从 {source_ext} 格式转换。"}), 400
         
-        output_path_rel = os.path.relpath(output_path_abs, image_base_dir).replace('\\', '/')
-        return jsonify({"status": "success", "message": "转换成功！", "output_path": output_path_rel})
+        # 返回新的文件名，而不是相对路径
+        return jsonify({"status": "success", "message": "转换成功！", "output_path": new_filename})
     except Exception as e:
-        # 将异常信息作为字符串返回
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':

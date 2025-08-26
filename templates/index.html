@@ -154,7 +154,7 @@
         .info-pane strong { color: var(--md-sys-on-surface); font-weight: 500; display: inline-block; width: 100px; flex-shrink: 0;}
         
         /* 按钮与表单 */
-        .action-group { position: relative; width: 100%; text-align: center; } /* For popover positioning */
+        .action-group { position: relative; width: 100%; text-align: center; }
         .action-button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; border-radius: var(--border-radius-large); padding: 16px 32px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: all var(--transition-duration); width: 100%; }
         .action-button:hover { opacity: 0.9; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .action-button:disabled { background-color: var(--md-sys-outline); cursor: not-allowed; }
@@ -166,7 +166,7 @@
             flex-direction: column;
             gap: 16px;
             width: 100%;
-            max-width: 250px; /* Constrain width for alignment */
+            max-width: 250px;
         }
         .custom-convert-link {
             font-size: 0.9rem;
@@ -174,8 +174,8 @@
             cursor: pointer;
             text-decoration: underline;
             margin-top: -8px;
-            display: block; /* Make it a block element */
-            text-align: center; /* Center text inside */
+            display: block;
+            text-align: center;
         }
         
         .form-group { margin-bottom: 1.2rem; }
@@ -198,7 +198,6 @@
         .convert-status.success span { text-decoration: underline; cursor: pointer; font-weight: bold; }
         .convert-status.error { background-color: var(--md-sys-error-container); color: var(--md-sys-on-error-container); white-space: pre-wrap; }
         
-        /* --- 悬浮气泡样式 --- */
         .popover {
             position: absolute;
             bottom: 110%;
@@ -223,11 +222,9 @@
         .popover li { padding: 6px 12px; cursor: pointer; border-radius: var(--border-radius-small); font-size: 0.9rem; }
         .popover li:hover { background-color: var(--md-sys-surface-container); }
         
-        /* --- 拷贝提示 --- */
         #copy-toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background-color: rgba(20, 20, 20, 0.85); color: white; padding: 12px 24px; border-radius: var(--border-radius-large); z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s, transform 0.3s; }
         #copy-toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-10px); }
 
-        /* --- 模态框样式 --- */
         .modal { display: flex; align-items: center; justify-content: center; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: opacity var(--transition-duration), visibility var(--transition-duration); }
         .modal.is-open { opacity: 1; visibility: visible; }
         .modal-content { background-color: var(--md-sys-surface); padding: 32px; border-radius: var(--border-radius-large); width: 90%; max-width: 550px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform var(--transition-duration) var(--transition-easing); }
@@ -239,7 +236,6 @@
         .modal-content button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; cursor: pointer; margin-top: 1rem; transition: background-color var(--transition-duration); }
         .modal-content button:hover { opacity: 0.9; }
         
-        /* --- 响应式布局 --- */
         @media (max-width: 1200px) { .search-results { column-count: 4; } }
         @media (max-width: 992px) { .search-results { column-count: 3; } }
         @media (max-width: 768px) {
@@ -482,7 +478,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('detail-dimensions').textContent = item.dimensions ? item.dimensions.join(' x ') : 'N/A';
         document.getElementById('detail-date').textContent = new Date(item.date).toLocaleDateString();
 
-        // Show/hide convert button based on type
         if (item.type === '.webp' || item.type === '.webm') {
             detailConvertGroup.classList.remove('hidden');
             customConvertLink.classList.remove('hidden');
@@ -512,7 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Event Handlers ---
-    // Search
     searchForm.addEventListener('submit', handleSearch);
     searchResults.addEventListener('click', (e) => {
         const itemElement = e.target.closest('.result-item');
@@ -558,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
             data.files.forEach(file => {
                 const li = document.createElement('li');
                 li.textContent = file.split('/').pop();
-                li.onclick = () => copyFile(file);
+                li.onclick = () => copyFile(file, null, 'index');
                 list.appendChild(li);
             });
             copyPopover.appendChild(list);
@@ -583,7 +577,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     detailConvertGroup.addEventListener('mouseleave', () => convertPopover.classList.remove('is-visible'));
 
-
     // Convert Forms
     webpConvertForm.addEventListener('submit', e => {
         e.preventDefault();
@@ -603,7 +596,6 @@ document.addEventListener('DOMContentLoaded', () => {
         convertFile(currentDetailItem.path, 'gif', params, false, 'webm');
     });
     
-    // --- Dynamic Form Interactions ---
     setupSliderSync('webp-scale-slider', 'webp-scale-input', 'webp-scale-display');
     setupSliderSync('webm-scale-slider', 'webm-scale-input', 'webm-scale-display');
     setupSliderSync('webm-threshold-slider', 'webm-threshold-input', 'webm-threshold-display');
@@ -654,9 +646,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function copyFile(path, preferredFormat = null) {
+    async function copyFile(path, preferredFormat = null, location = 'index') {
         showToast('正在拷贝...');
-        const body = { path };
+        const body = { path, location };
         if (preferredFormat) {
             body.preferred_format = preferredFormat;
         }
@@ -704,15 +696,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 if(shouldCopy) {
-                    copyFile(data.output_path);
+                    copyFile(data.output_path, null, 'converted');
                 } else if (statusElem) {
                     statusElem.className = 'convert-status success';
-                    const newFileName = data.output_path.split('/').pop();
-                    statusElem.innerHTML = `转换成功: ${newFileName}！<span data-path="${data.output_path}">点击此处拷贝</span>`;
-                    statusElem.querySelector('span').onclick = (e) => copyFile(e.target.dataset.path);
+                    const newFileName = data.output_path;
+                    statusElem.innerHTML = `转换成功: ${newFileName}！<span data-path="${newFileName}">点击此处拷贝</span>`;
+                    statusElem.querySelector('span').onclick = (e) => copyFile(e.target.dataset.path, null, 'converted');
                     statusElem.classList.remove('hidden');
                 } else {
-                     showToast(`✅ 转换成功: ${data.output_path.split('/').pop()}`);
+                     showToast(`✅ 转换成功: ${data.output_path}`);
                 }
             } else {
                 throw new Error(data.message);
