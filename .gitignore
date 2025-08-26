@@ -1,5 +1,6 @@
 # 素材
 SavedStickers/
+stickers_converted/
 
 # 模型文件夹
 chinese-clip-vit-base-patch16/
@@ -23,3 +24,4 @@ ENV/
 
 # 临时文件
 draft.txt
+tmp/

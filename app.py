@@ -1,8 +1,18 @@
+# app.py
+
 import os
 import json
+import glob
+from datetime import datetime
 from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
+from PIL import Image
+import cv2
+
 from image_search_core import ImageIndexer, ImageSearcher
 from image_search_core.config import CONFIG_FILE, DEFAULT_IMAGE_DIR
+from image_search_core.utils import copy_file_to_clipboard
+# 1. 导入转换器模块
+from image_search_core.converter import convert_webm_to_gif, convert_webp
 
 app = Flask(__name__)
 
@@ -13,7 +23,6 @@ def get_persisted_image_dir():
     try:
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
-        # 确保返回的是绝对路径，以供后续操作使用
         abs_path = config_data.get('image_base_dir')
         return os.path.abspath(abs_path) if abs_path else None
     except (IOError, json.JSONDecodeError):
@@ -23,9 +32,8 @@ def get_persisted_image_dir():
 
 @app.route('/')
 def home():
-    """渲染主页，并将持久化的目录路径传递给模板。"""
+    """渲染主页。"""
     persisted_dir = get_persisted_image_dir()
-    # 如果配置文件中没有，就使用默认的
     dir_to_show = persisted_dir or DEFAULT_IMAGE_DIR
     return render_template('index.html', last_indexed_dir=dir_to_show)
 
@@ -41,17 +49,15 @@ def serve_image(filename):
 
 @app.route('/api/index', methods=['POST'])
 def api_index_images():
-    """API 端点：触发图片索引过程，并将目录路径持久化。"""
+    """API 端点：触发图片索引过程。"""
     data = request.get_json()
     if not data or 'image_dir' not in data:
         return jsonify({"status": "error", "message": "请求体中缺少 'image_dir' 参数。"}), 400
 
     image_dir = data['image_dir']
     if not os.path.isdir(image_dir):
-        # 如果目录不存在，尝试创建它（特别是对于默认目录）
         try:
             os.makedirs(image_dir, exist_ok=True)
-            print(f"目录 '{image_dir}' 不存在，已自动创建。")
         except OSError as e:
             return jsonify({"status": "error", "message": f"目录不存在且创建失败: {e}"}), 400
     
@@ -64,43 +70,171 @@ def api_index_images():
 
 @app.route('/api/search', methods=['GET'])
 def api_search_images():
-    """API 端点：执行语义搜索。"""
+    """API 端点：执行语义搜索并返回包含元数据的详细结果。"""
     query = request.args.get('query')
-    top_k = request.args.get('top_k', 9, type=int)
+    top_k = request.args.get('top_k', 20, type=int)
 
     if not query:
         return jsonify({"status": "error", "message": "缺少 'query' URL 参数。"}), 400
     
     image_base_dir = get_persisted_image_dir()
     if not image_base_dir:
-        return jsonify({"status": "error", "message": "图片根目录未在配置中设置。请先运行一次索引来配置路径。"}), 400
+        return jsonify({"status": "error", "message": "图片根目录未配置。请先运行一次索引。"}), 400
 
     try:
         searcher = ImageSearcher()
         results = searcher.search(query=query, top_k=top_k)
-
-        # 遍历搜索结果，处理可能为相对路径的情况
+        
+        detailed_results = []
         for item in results:
             path_from_index = item['path']
             
-            # 步骤 1: 确保我们有一个绝对路径
-            # 如果从索引读出的路径不是绝对路径，则根据当前工作目录转换它
-            if not os.path.isabs(path_from_index):
-                absolute_path = os.path.abspath(path_from_index)
-            else:
-                absolute_path = path_from_index
+            absolute_path = os.path.abspath(path_from_index)
 
-            # 步骤 2: 使用绝对路径来计算相对于图片库根目录的路径，用于生成URL
-            # 这一步现在是安全的，因为 absolute_path 保证是绝对路径
-            relative_path = os.path.relpath(absolute_path, image_base_dir)
+            if not os.path.exists(absolute_path):
+                continue
             
-            # 步骤 3: 生成最终的 URL
+            relative_path = os.path.relpath(absolute_path, image_base_dir).replace('\\', '/')
+            item['path'] = relative_path
             item['url'] = url_for('serve_image', filename=relative_path)
+            item['type'] = os.path.splitext(relative_path)[1].lower() # 添加文件类型
 
-        return jsonify({"status": "success", "results": results})
+            try:
+                item['filename'] = os.path.basename(absolute_path)
+                item['size'] = os.path.getsize(absolute_path)
+                item['date'] = datetime.fromtimestamp(os.path.getmtime(absolute_path)).isoformat() + 'Z'
+                
+                dimensions = [0, 0]
+                try:
+                    if absolute_path.lower().endswith(('.webm', '.mp4', '.gif')):
+                        cap = cv2.VideoCapture(absolute_path)
+                        if cap.isOpened():
+                            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            dimensions = [width, height]
+                        cap.release()
+                    else:
+                        with Image.open(absolute_path) as img:
+                            width, height = img.size
+                            dimensions = [width, height]
+                except Exception as e_dim:
+                    print(f"警告: 无法获取文件尺寸 {absolute_path}。错误: {e_dim}")
+
+                item['dimensions'] = dimensions
+                detailed_results.append(item)
+
+            except OSError as e_meta:
+                print(f"警告: 无法获取文件元数据 {absolute_path}。错误: {e_meta}")
+                continue
+
+        return jsonify({"status": "success", "results": detailed_results})
     except FileNotFoundError:
         return jsonify({"status": "error", "message": "索引文件 'image_features.npz' 不存在。请先运行索引。"}), 404
     except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/copy', methods=['POST'])
+def api_copy_file():
+    """
+    API 端点：将文件对象复制到剪贴板。
+    支持 'path' 和 'preferred_format' 参数。
+    """
+    data = request.get_json()
+    if not data or 'path' not in data:
+        return jsonify({"status": "error", "message": "请求体中缺少 'path' 参数。"}), 400
+
+    relative_path = data['path']
+    preferred_format = data.get('preferred_format') # e.g., '.gif'
+    
+    image_base_dir = get_persisted_image_dir()
+    if not image_base_dir:
+        return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
+
+    path_to_copy = os.path.join(image_base_dir, relative_path)
+
+    if preferred_format:
+        base, _ = os.path.splitext(path_to_copy)
+        preferred_path = base + preferred_format
+        if os.path.exists(preferred_path):
+            path_to_copy = preferred_path
+
+    success, message = copy_file_to_clipboard(path_to_copy)
+    
+    # 在成功信息中包含实际拷贝的文件名
+    if success:
+        message = f"已复制到剪贴板: {os.path.basename(path_to_copy)}"
+
+    if success:
+        return jsonify({"status": "success", "message": message, "copied_file": os.path.basename(path_to_copy)})
+    else:
+        return jsonify({"status": "error", "message": message}), 500
+
+# --- 2. 新增 API：查找同名文件 ---
+@app.route('/api/find_relatives', methods=['GET'])
+def api_find_relatives():
+    """
+    API 端点：根据给定的文件路径，查找同一目录下所有同基本名的文件。
+    """
+    relative_path = request.args.get('path')
+    if not relative_path:
+        return jsonify({"status": "error", "message": "缺少 'path' URL 参数。"}), 400
+
+    image_base_dir = get_persisted_image_dir()
+    if not image_base_dir:
+        return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
+        
+    full_path = os.path.join(image_base_dir, relative_path)
+    directory = os.path.dirname(full_path)
+    base_name = os.path.splitext(os.path.basename(full_path))[0]
+
+    # 使用 glob 查找所有匹配的文件
+    search_pattern = os.path.join(directory, base_name + ".*")
+    found_files = glob.glob(search_pattern)
+
+    # 转换为相对于 image_base_dir 的路径
+    relative_files = [os.path.relpath(f, image_base_dir).replace('\\', '/') for f in found_files]
+    
+    return jsonify({"status": "success", "files": sorted(relative_files)})
+
+# --- 3. 新增 API：执行转换 ---
+@app.route('/api/convert', methods=['POST'])
+def api_convert_file():
+    """
+    API 端点：执行文件格式转换。
+    """
+    data = request.get_json()
+    source_path_rel = data.get('source_path')
+    target_format = data.get('target_format')
+    params = data.get('params', {})
+    
+    if not all([source_path_rel, target_format]):
+        return jsonify({"status": "error", "message": "缺少 source_path 或 target_format 参数。"}), 400
+
+    image_base_dir = get_persisted_image_dir()
+    if not image_base_dir:
+        return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
+
+    source_path_abs = os.path.join(image_base_dir, source_path_rel)
+    if not os.path.exists(source_path_abs):
+        return jsonify({"status": "error", "message": f"源文件不存在: {source_path_rel}"}), 404
+
+    # 构建输出路径
+    base, _ = os.path.splitext(source_path_abs)
+    output_path_abs = base + '.' + target_format.lower()
+    
+    try:
+        source_ext = os.path.splitext(source_path_abs)[1].lower()
+        if source_ext == '.webm':
+            convert_webm_to_gif(source_path_abs, output_path_abs, params)
+        elif source_ext == '.webp':
+            convert_webp(source_path_abs, output_path_abs, target_format, params)
+        else:
+            return jsonify({"status": "error", "message": f"不支持从 {source_ext} 格式转换。"}), 400
+        
+        output_path_rel = os.path.relpath(output_path_abs, image_base_dir).replace('\\', '/')
+        return jsonify({"status": "success", "message": "转换成功！", "output_path": output_path_rel})
+    except Exception as e:
+        # 将异常信息作为字符串返回
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':

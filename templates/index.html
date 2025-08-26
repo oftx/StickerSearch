@@ -20,6 +20,10 @@
             --md-sys-on-surface-variant: #44474f;
             --md-sys-outline: #c4c6d0;
             --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1);
+            --md-sys-error: #ba1a1a;
+            --md-sys-error-container: #ffdad6;
+            --md-sys-on-error-container: #410002;
+            --md-sys-success: #386a20;
 
             /* Shape & Animation */
             --border-radius-large: 28px;
@@ -41,6 +45,10 @@
                 --md-sys-on-surface-variant: #c4c6d0;
                 --md-sys-outline: #8e9099;
                 --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.3);
+                --md-sys-error: #ffb4ab;
+                --md-sys-error-container: #93000a;
+                --md-sys-on-error-container: #ffdad6;
+                --md-sys-success: #b5d3a5;
             }
         }
 
@@ -57,6 +65,10 @@
             transition: background-color var(--transition-duration), color var(--transition-duration);
         }
 
+        /* --- 核心视图切换样式 --- */
+        .hidden { display: none !important; }
+        .app-view { min-height: 100vh; width: 100%; }
+
         .main-container {
             display: flex;
             flex-direction: column;
@@ -72,9 +84,10 @@
             display: flex;
             justify-content: flex-end;
             padding: 16px;
-            position: absolute;
+            position: fixed;
             top: 0;
             right: 0;
+            z-index: 100;
         }
 
         .settings-btn {
@@ -92,193 +105,130 @@
             justify-content: center;
             transition: background-color var(--transition-duration), transform var(--transition-duration);
         }
-        .settings-btn:hover { 
-            background-color: rgba(0,0,0,0.08); 
-            transform: rotate(60deg);
-        }
+        .settings-btn:hover { background-color: rgba(0,0,0,0.08); transform: rotate(60deg); }
 
-        .title {
-            font-size: 3rem;
-            font-weight: 700;
-            color: var(--md-sys-primary);
-            margin-bottom: 2.5rem;
-        }
+        .title { font-size: 3rem; font-weight: 700; color: var(--md-sys-primary); margin-bottom: 2.5rem; }
 
-        .search-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: 2.5rem;
-        }
-
-        .search-bar {
-            width: 100%;
-            position: relative;
-            flex-grow: 1;
-            margin-bottom: 0;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 18px 60px 18px 24px;
-            font-size: 1.1rem;
-            border: 2px solid var(--md-sys-outline);
-            border-radius: var(--border-radius-large);
-            background-color: var(--md-sys-surface);
-            color: var(--md-sys-on-surface);
-            outline: none;
-            transition: border-color var(--transition-duration), box-shadow var(--transition-duration);
-        }
-        .search-input:focus {
-            border-color: var(--md-sys-primary);
-            box-shadow: 0 0 0 4px var(--md-sys-primary-container);
-        }
-
-        .search-button {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: transparent;
-            color: var(--md-sys-primary);
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 24px;
-            font-weight: bold;
-            transition: background-color var(--transition-duration), transform var(--transition-duration);
-        }
+        .search-container { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 900px; margin-bottom: 2.5rem; }
+        .search-bar { width: 100%; position: relative; flex-grow: 1; margin-bottom: 0; }
+        .search-input { width: 100%; padding: 18px 60px 18px 24px; font-size: 1.1rem; border: 2px solid var(--md-sys-outline); border-radius: var(--border-radius-large); background-color: var(--md-sys-surface); color: var(--md-sys-on-surface); outline: none; transition: border-color var(--transition-duration), box-shadow var(--transition-duration); }
+        .search-input:focus { border-color: var(--md-sys-primary); box-shadow: 0 0 0 4px var(--md-sys-primary-container); }
+        .search-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background-color: transparent; color: var(--md-sys-primary); border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; font-weight: bold; transition: background-color var(--transition-duration), transform var(--transition-duration); }
         .search-button:hover { transform: translateY(-50%) scale(1.05); }
         .search-button:active { transform: translateY(-50%) scale(0.95); }
         
-        .options-bar {
-            display: inline-flex;
-            align-items: center;
-            margin-top: 0;
-            background-color: var(--md-sys-surface);
-            padding: 12px 16px;
-            border-radius: var(--border-radius-large); 
-            border: 2px solid var(--md-sys-outline);
-            gap: 8px;
-            color: var(--md-sys-on-surface-variant);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: box-shadow var(--transition-duration), border-color var(--transition-duration);
-            flex-shrink: 0;
-        }
-        .options-bar:focus-within {
-             box-shadow: 0 0 0 4px var(--md-sys-primary-container);
-             border-color: var(--md-sys-primary);
-        }
+        .options-bar { display: inline-flex; align-items: center; margin-top: 0; background-color: var(--md-sys-surface); padding: 12px 16px; border-radius: var(--border-radius-large); border: 2px solid var(--md-sys-outline); gap: 8px; color: var(--md-sys-on-surface-variant); box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: box-shadow var(--transition-duration), border-color var(--transition-duration); flex-shrink: 0; }
+        .options-bar:focus-within { box-shadow: 0 0 0 4px var(--md-sys-primary-container); border-color: var(--md-sys-primary); }
         .options-bar label { font-size: 0.9rem; }
-        .options-bar input[type="number"] {
-            width: 50px;
-            border: none;
-            background: transparent;
-            color: var(--md-sys-on-surface);
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 500;
-            padding: 4px;
-            -moz-appearance: textfield;
-        }
-        .options-bar input[type="number"]::-webkit-outer-spin-button,
-        .options-bar input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        .options-bar input[type="number"] { width: 50px; border: none; background: transparent; color: var(--md-sys-on-surface); text-align: center; font-size: 1rem; font-weight: 500; padding: 4px; -moz-appearance: textfield; }
+        .options-bar input[type="number"]::-webkit-outer-spin-button, .options-bar input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .options-bar input[type="number"]:focus { outline: none; }
 
+        .results-container { width: 90%; max-width: 1400px; margin: 80px auto 20px; padding: 0 24px; }
+        .search-results { column-count: 5; column-gap: 16px; }
+        .result-item { margin: 0 0 16px; background-color: var(--md-sys-surface); border-radius: var(--border-radius-medium); overflow: hidden; box-shadow: var(--md-sys-shadow); transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing); position: relative; break-inside: avoid; margin-bottom: 16px; cursor: pointer; }
+        .result-item:hover { transform: translateY(-6px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1); }
+        .result-item img, .result-item video { width: 100%; height: auto; display: block; background-color: var(--md-sys-surface-container); }
+        .result-item figcaption { position: absolute; bottom: 0; left: 0; width: 100%; padding: 16px 16px; font-size: 0.9em; text-align: center; color: #ffffff; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity var(--transition-duration) var(--transition-easing), transform var(--transition-duration) var(--transition-easing), visibility var(--transition-duration); }
+        .result-item:hover figcaption { opacity: 1; visibility: visible; transform: translateY(0); }
+        .status-message { margin-top: 2rem; font-size: 1.1rem; color: var(--md-sys-on-surface-variant); }
 
-        .results-container {
-            width: min(80%, 800px);
-            max-width: 1200px; 
-            margin: 20px auto;
-            padding: 0 24px;
-        }
-
-        .search-results {
-            column-count: 3;
-            column-gap: 16px;
-        }
-
-        .result-item {
-            margin: 0 0 16px;
-            background-color: var(--md-sys-surface);
-            border-radius: var(--border-radius-medium);
-            overflow: hidden;
-            box-shadow: var(--md-sys-shadow);
-            opacity: 1;
-            transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing);
-            position: relative;
-            break-inside: avoid;
-            margin-bottom: 16px;
-        }
-
-        @media (max-width: 992px) {
-            .search-results { column-count: 2; column-gap: 16px; }
-        }
-        @media (max-width: 768px) {
-            .search-results { column-count: 2; column-gap: 16px; }
-        }
-        @media (max-width: 600px) {
-            .search-results { column-count: 2; column-gap: 16px; }
-        }
-        @media (max-width: 480px) {
-            .search-results { column-count: 1; column-gap: 0; margin-left: 0; margin-right: 0; }
-            .result-item { margin-bottom: 16px; }
-        }
-
-        .result-item:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1);
-        }
+        /* --- 详情页 & 转换页 样式 --- */
+        .detail-container, .convert-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+        .content-wrapper { display: flex; flex-direction: row; align-items: center; gap: 48px; width: 100%; max-width: 900px; padding: 24px; }
+        .preview-pane { flex-shrink: 0; width: 40%; display: flex; align-items: center; justify-content: center; }
+        .preview-pane img, .preview-pane video { max-width: 100%; max-height: 40vh; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); border-radius: var(--border-radius-small); }
         
-        /* --- 核心修改：让图片和视频表现一致 --- */
-        .result-item img, .result-item video {
-            width: 100%;
-            height: auto;
-            display: block;
-            background-color: #eee;
-        }
-        
-        .result-item figcaption {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 16px 16px;
-            font-size: 0.9em;
-            text-align: center;
-            color: #ffffff;
-            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(10px);
-            transition: opacity var(--transition-duration) var(--transition-easing), 
-                        transform var(--transition-duration) var(--transition-easing),
-                        visibility var(--transition-duration);
-        }
-        .result-item:hover figcaption {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .status-message {
-            margin-top: 2rem;
+        .info-pane {
+            flex-grow: 1;
             font-size: 1.1rem;
             color: var(--md-sys-on-surface-variant);
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Default align left */
         }
+        .info-pane h2 { color: var(--md-sys-on-surface); margin-top: 0; width: 100%; }
+        .info-pane ul { list-style: none; padding: 0; margin: 0 0 32px 0; width: 100%;}
+        .info-pane li { margin-bottom: 16px; display: flex; }
+        .info-pane strong { color: var(--md-sys-on-surface); font-weight: 500; display: inline-block; width: 100px; flex-shrink: 0;}
+        
+        /* 按钮与表单 */
+        .action-group { position: relative; width: 100%; text-align: center; } /* For popover positioning */
+        .action-button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; border-radius: var(--border-radius-large); padding: 16px 32px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: all var(--transition-duration); width: 100%; }
+        .action-button:hover { opacity: 0.9; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .action-button:disabled { background-color: var(--md-sys-outline); cursor: not-allowed; }
+        .secondary-button { background-color: var(--md-sys-surface); color: var(--md-sys-on-surface-variant); border: 1px solid var(--md-sys-outline); }
+        .secondary-button:hover { background-color: var(--md-sys-primary-container); border-color: var(--md-sys-primary); }
+        
+        .detail-actions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 250px; /* Constrain width for alignment */
+        }
+        .custom-convert-link {
+            font-size: 0.9rem;
+            color: var(--md-sys-on-surface-variant);
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: -8px;
+            display: block; /* Make it a block element */
+            text-align: center; /* Center text inside */
+        }
+        
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--md-sys-on-surface); }
+        .form-group select, .form-group input[type="text"], .form-group input[type="number"] { width: 100%; padding: 12px; border-radius: var(--border-radius-small); border: 1px solid var(--md-sys-outline); background-color: var(--md-sys-surface-container); color: var(--md-sys-on-surface); font-size: 1rem; }
+        .form-group .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .form-group .checkbox-group input[type="checkbox"] { width: 1.3em; height: 1.3em; accent-color: var(--md-sys-primary); }
+        .form-group .range-group { display: flex; align-items: center; gap: 16px; }
+        .form-group .range-group input[type="range"] { flex-grow: 1; }
+        .form-group .range-group input[type="number"] { width: 70px; }
+        .form-group:has(input:disabled) { opacity: 0.5; }
 
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity var(--transition-duration), visibility var(--transition-duration); }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: var(--md-sys-surface-container); border-radius: 4px; outline: none; opacity: 0.8; transition: opacity .2s; }
+        input[type="range"]:hover { opacity: 1; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+        .convert-status { margin-top: 1.5rem; padding: 1rem; border-radius: var(--border-radius-small); word-break: break-word; }
+        .convert-status.success { background-color: var(--md-sys-primary-container); color: var(--md-sys-on-primary-container); }
+        .convert-status.success span { text-decoration: underline; cursor: pointer; font-weight: bold; }
+        .convert-status.error { background-color: var(--md-sys-error-container); color: var(--md-sys-on-error-container); white-space: pre-wrap; }
+        
+        /* --- 悬浮气泡样式 --- */
+        .popover {
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--md-sys-surface);
+            border: 1px solid var(--md-sys-outline);
+            border-radius: var(--border-radius-medium);
+            box-shadow: var(--md-sys-shadow);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s var(--transition-easing);
+            min-width: 150px;
+        }
+        .popover.is-visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-10px);
+        }
+        .popover ul { list-style: none; margin: 0; padding: 6px; }
+        .popover li { padding: 6px 12px; cursor: pointer; border-radius: var(--border-radius-small); font-size: 0.9rem; }
+        .popover li:hover { background-color: var(--md-sys-surface-container); }
+        
+        /* --- 拷贝提示 --- */
+        #copy-toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background-color: rgba(20, 20, 20, 0.85); color: white; padding: 12px 24px; border-radius: var(--border-radius-large); z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s, transform 0.3s; }
+        #copy-toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-10px); }
+
+        /* --- 模态框样式 --- */
+        .modal { display: flex; align-items: center; justify-content: center; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: opacity var(--transition-duration), visibility var(--transition-duration); }
         .modal.is-open { opacity: 1; visibility: visible; }
         .modal-content { background-color: var(--md-sys-surface); padding: 32px; border-radius: var(--border-radius-large); width: 90%; max-width: 550px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform var(--transition-duration) var(--transition-easing); }
         .modal.is-open .modal-content { transform: scale(1); }
@@ -287,15 +237,21 @@
         .modal-content h2 { margin-top: 0; }
         .modal-content input[type="text"], .modal-content button { width: 100%; padding: 12px 16px; font-size: 1rem; border-radius: var(--border-radius-small); border: 1px solid var(--md-sys-outline); }
         .modal-content button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; cursor: pointer; margin-top: 1rem; transition: background-color var(--transition-duration); }
-        .modal-content button:hover { background-color: #004494; }
+        .modal-content button:hover { opacity: 0.9; }
         
-        @media (max-width: 992px) { .search-results { column-count: 2; } }
+        /* --- 响应式布局 --- */
+        @media (max-width: 1200px) { .search-results { column-count: 4; } }
+        @media (max-width: 992px) { .search-results { column-count: 3; } }
         @media (max-width: 768px) {
-            .search-container {
-                flex-direction: column;
-                gap: 12px;
-            }
+            .search-container { flex-direction: column; gap: 12px; }
             .search-results { column-count: 2; }
+            .content-wrapper { flex-direction: column; text-align: center; gap: 24px; }
+            .preview-pane { width: 100%; max-width: 300px; }
+            .info-pane {
+                width: 100%;
+                align-items: center; /* Center content on mobile */
+            }
+            .info-pane li { justify-content: center; }
         }
         @media (max-width: 600px) {
             .title { font-size: 2.2rem; }
@@ -314,7 +270,8 @@
         <button class="settings-btn" id="open-settings-modal" title="索引设置">⚙️</button>
     </header>
 
-    <main class="main-container">
+    <!-- Main/Search View -->
+    <main id="view-main" class="app-view main-container">
         <h1 class="title">表情贴纸语义搜索</h1>
         <div class="search-container">
             <form id="search-form" class="search-bar">
@@ -323,16 +280,122 @@
             </form>
             <div class="options-bar">
                 <label for="top_k">给我来</label>
-                <input type="number" id="top_k" value="20" min="1" max="50">
-                <label for="top_k">张</label>
+                <input type="number" id="top_k" value="50" min="1" max="100">
+                <label for="top_k">张!</label>
             </div>
         </div>
         <div class="status-message" id="status-message"></div>
+        <div class="results-container">
+            <div class="search-results" id="search-results"></div>
+        </div>
     </main>
 
-    <div class="results-container">
-        <div class="search-results" id="search-results">
-            <!-- Search results will be dynamically inserted here -->
+    <!-- Detail View -->
+    <div id="view-detail" class="app-view detail-container hidden">
+        <div class="content-wrapper">
+            <div class="preview-pane" id="detail-media-container"></div>
+            <div class="info-pane">
+                <ul>
+                    <li><strong>文件名:</strong> <span id="detail-filename"></span></li>
+                    <li><strong>文件大小:</strong> <span id="detail-size"></span></li>
+                    <li><strong>尺寸:</strong> <span id="detail-dimensions"></span></li>
+                    <li><strong>日期:</strong> <span id="detail-date"></span></li>
+                </ul>
+                <div class="detail-actions-container">
+                    <div class="action-group" id="detail-copy-group">
+                        <button class="action-button" id="copy-image-btn">拷贝图像</button>
+                        <div class="popover" id="copy-popover"></div>
+                    </div>
+                    <div class="action-group" id="detail-convert-group">
+                        <button class="action-button secondary-button" id="convert-gif-btn">转为 GIF</button>
+                        <div class="popover" id="convert-popover"></div>
+                    </div>
+                    <a class="custom-convert-link" id="custom-convert-link">自定义转换 ></a>
+                    <button class="action-button secondary-button" id="back-to-results-btn">返回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- WebP Convert View -->
+    <div id="view-convert-webp" class="app-view convert-container hidden">
+        <div class="content-wrapper">
+            <div class="preview-pane" id="webp-convert-preview"></div>
+            <div class="info-pane">
+                <h2 id="webp-convert-title">转换 WEBP</h2>
+                <form id="webp-convert-form">
+                    <div class="form-group">
+                        <label for="webp-target-format">目标格式:</label>
+                        <select id="webp-target-format">
+                            <option value="png">PNG</option>
+                            <option value="jpeg">JPG</option>
+                            <option value="gif">GIF</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="webp-scale-input">缩放: <span id="webp-scale-display">1</span></label>
+                        <div class="range-group">
+                             <input type="range" id="webp-scale-slider" min="0.1" max="4" step="0.1" value="1">
+                             <input type="number" id="webp-scale-input" min="0.1" max="4" step="0.1" value="1">
+                        </div>
+                    </div>
+                    <div class="action-group">
+                        <button type="submit" class="action-button">开始转换</button>
+                        <button type="button" class="action-button secondary-button" id="back-from-webp-convert-btn">返回</button>
+                    </div>
+                </form>
+                <div id="webp-convert-status" class="convert-status hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebM Convert View -->
+    <div id="view-convert-webm" class="app-view convert-container hidden">
+         <div class="content-wrapper">
+            <div class="preview-pane" id="webm-convert-preview"></div>
+            <div class="info-pane">
+                <h2 id="webm-convert-title">将 WEBM 转换为 GIF</h2>
+                <form id="webm-convert-form">
+                    <div class="form-group">
+                        <label for="webm-scale-input">缩放: <span id="webm-scale-display">1</span></label>
+                        <div class="range-group">
+                             <input type="range" id="webm-scale-slider" min="0.1" max="4" step="0.1" value="1">
+                             <input type="number" id="webm-scale-input" min="0.1" max="4" step="0.1" value="1">
+                        </div>
+                    </div>
+                     <div class="form-group">
+                        <label for="webm-algorithm">算法:</label>
+                        <select id="webm-algorithm">
+                            <option value="fast_bilinear">fast_bilinear (最快)</option>
+                            <option value="neighbor">neighbor (像素化)</option>
+                            <option value="bilinear">bilinear (模糊)</option>
+                            <option value="bicubic">bicubic (平衡)</option>
+                            <option value="area">area (适合缩小)</option>
+                            <option value="lanczos" selected>lanczos (高质量)</option>
+                            <option value="sinc">sinc (高质量)</option>
+                            <option value="spline">spline (高质量)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                           <input type="checkbox" id="webm-reserve-transparent" checked>
+                           <label for="webm-reserve-transparent">保留不透明度</label>
+                        </div>
+                    </div>
+                     <div class="form-group" id="webm-threshold-group">
+                        <label for="webm-threshold-input">不透明度阈值: <span id="webm-threshold-display">128</span></label>
+                        <div class="range-group">
+                             <input type="range" id="webm-threshold-slider" min="0" max="255" step="1" value="128">
+                             <input type="number" id="webm-threshold-input" min="0" max="255" step="1" value="128">
+                        </div>
+                    </div>
+                    <div class="action-group">
+                        <button type="submit" class="action-button">开始转换</button>
+                        <button type="button" class="action-button secondary-button" id="back-from-webm-convert-btn">返回</button>
+                    </div>
+                </form>
+                <div id="webm-convert-status" class="convert-status hidden"></div>
+            </div>
         </div>
     </div>
 
@@ -344,7 +407,7 @@
             <form id="index-form">
                 <div style="margin-bottom: 1rem;">
                     <label for="image-dir" style="display: block; margin-bottom: 0.5rem;">图片文件夹路径</label>
-                    <input type="text" id="image-dir" value="./stickers" placeholder="例如: /Users/username/Pictures" required>
+                    <input type="text" id="image-dir" value="{{ last_indexed_dir }}" placeholder="例如: /Users/username/Pictures" required>
                 </div>
                 <button type="submit" id="index-button">开始/更新索引</button>
             </form>
@@ -352,31 +415,397 @@
         </div>
     </div>
 
+    <!-- Copy Toast Notification -->
+    <div id="copy-toast"></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Global State ---
+    let currentDetailItem = null;
+
+    // --- Element Caching ---
+    const views = {
+        main: document.getElementById('view-main'),
+        detail: document.getElementById('view-detail'),
+        convertWebp: document.getElementById('view-convert-webp'),
+        convertWebm: document.getElementById('view-convert-webm'),
+    };
     const searchForm = document.getElementById('search-form');
-    const statusMessage = document.getElementById('status-message');
     const searchResults = document.getElementById('search-results');
+    const statusMessage = document.getElementById('status-message');
+    const copyToast = document.getElementById('copy-toast');
+    
+    // Detail View Elements
+    const detailMediaContainer = document.getElementById('detail-media-container');
+    const copyImageBtn = document.getElementById('copy-image-btn');
+    const copyPopover = document.getElementById('copy-popover');
+    const detailCopyGroup = document.getElementById('detail-copy-group');
+    const convertGifBtn = document.getElementById('convert-gif-btn');
+    const convertPopover = document.getElementById('convert-popover');
+    const detailConvertGroup = document.getElementById('detail-convert-group');
+    const customConvertLink = document.getElementById('custom-convert-link');
+
+    // WebP Convert View Elements
+    const webpConvertForm = document.getElementById('webp-convert-form');
+    const webpConvertStatus = document.getElementById('webp-convert-status');
+
+    // WebM Convert View Elements
+    const webmConvertForm = document.getElementById('webm-convert-form');
+    const webmConvertStatus = document.getElementById('webm-convert-status');
+    const webmReserveTransparent = document.getElementById('webm-reserve-transparent');
+    const webmThresholdGroup = document.getElementById('webm-threshold-group');
+
+    // --- View Management ---
+    function showView(viewName, data = null) {
+        Object.values(views).forEach(v => v.classList.add('hidden'));
+        if (views[viewName]) {
+            views[viewName].classList.remove('hidden');
+            document.body.scrollTop = 0; // For Safari
+            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+        }
+        
+        if (viewName === 'detail' && data) {
+            currentDetailItem = data;
+            populateDetailView(data);
+        } else if (viewName === 'convertWebp' && data) {
+            populateWebpConvertView(data);
+        } else if (viewName === 'convertWebm' && data) {
+            populateWebmConvertView(data);
+        }
+    }
+
+    // --- Data Population ---
+    function populateDetailView(item) {
+        detailMediaContainer.innerHTML = createMediaElement(item).outerHTML;
+        document.getElementById('detail-filename').textContent = item.filename;
+        document.getElementById('detail-size').textContent = formatBytes(item.size);
+        document.getElementById('detail-dimensions').textContent = item.dimensions ? item.dimensions.join(' x ') : 'N/A';
+        document.getElementById('detail-date').textContent = new Date(item.date).toLocaleDateString();
+
+        // Show/hide convert button based on type
+        if (item.type === '.webp' || item.type === '.webm') {
+            detailConvertGroup.classList.remove('hidden');
+            customConvertLink.classList.remove('hidden');
+        } else {
+            detailConvertGroup.classList.add('hidden');
+            customConvertLink.classList.add('hidden');
+        }
+    }
+
+    function populateWebpConvertView(item) {
+        document.getElementById('webp-convert-preview').innerHTML = createMediaElement(item).outerHTML;
+        document.getElementById('webp-convert-title').textContent = `转换 ${item.type.toUpperCase().slice(1)}`;
+        webpConvertForm.reset();
+        document.getElementById('webp-scale-display').textContent = '1';
+        webpConvertStatus.classList.add('hidden');
+    }
+
+    function populateWebmConvertView(item) {
+        document.getElementById('webm-convert-preview').innerHTML = createMediaElement(item).outerHTML;
+        webmConvertForm.reset();
+        document.getElementById('webm-scale-display').textContent = '1';
+        document.getElementById('webm-threshold-display').textContent = '128';
+        webmThresholdGroup.style.opacity = '1';
+        webmThresholdGroup.querySelectorAll('input').forEach(i => i.disabled = false);
+        webmConvertStatus.classList.add('hidden');
+    }
+
+
+    // --- Event Handlers ---
+    // Search
+    searchForm.addEventListener('submit', handleSearch);
+    searchResults.addEventListener('click', (e) => {
+        const itemElement = e.target.closest('.result-item');
+        if (itemElement && itemElement.dataset.itemData) {
+            showView('detail', JSON.parse(itemElement.dataset.itemData));
+        }
+    });
+
+    // Back Buttons
+    document.getElementById('back-to-results-btn').addEventListener('click', () => showView('main'));
+    document.getElementById('back-from-webp-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
+    document.getElementById('back-from-webm-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
+
+    // Detail View Actions
+    copyImageBtn.addEventListener('click', () => {
+        const preferredFormat = (currentDetailItem.type === '.webp' || currentDetailItem.type === '.webm') ? '.gif' : null;
+        copyFile(currentDetailItem.path, preferredFormat);
+    });
+    
+    convertGifBtn.addEventListener('click', () => {
+        if (!currentDetailItem) return;
+        const defaultParams = { scale: 1.0, algorithm: 'lanczos', reserve_transparent: true, alpha_threshold: 128 };
+        convertFile(currentDetailItem.path, 'gif', defaultParams, true);
+    });
+    
+    customConvertLink.addEventListener('click', () => {
+        if (!currentDetailItem) return;
+        if (currentDetailItem.type === '.webp') {
+            showView('convertWebp', currentDetailItem);
+        } else if (currentDetailItem.type === '.webm') {
+            showView('convertWebm', currentDetailItem);
+        }
+    });
+
+    // Popovers Logic
+    detailCopyGroup.addEventListener('mouseenter', async () => {
+        if (!currentDetailItem) return;
+        const response = await fetch(`/api/find_relatives?path=${encodeURIComponent(currentDetailItem.path)}`);
+        const data = await response.json();
+        copyPopover.innerHTML = '';
+        if (data.status === 'success' && data.files.length > 1) {
+            const list = document.createElement('ul');
+            data.files.forEach(file => {
+                const li = document.createElement('li');
+                li.textContent = file.split('/').pop();
+                li.onclick = () => copyFile(file);
+                list.appendChild(li);
+            });
+            copyPopover.appendChild(list);
+            copyPopover.classList.add('is-visible');
+        }
+    });
+    detailCopyGroup.addEventListener('mouseleave', () => copyPopover.classList.remove('is-visible'));
+
+    detailConvertGroup.addEventListener('mouseenter', () => {
+        convertPopover.innerHTML = '';
+        if (currentDetailItem && currentDetailItem.type === '.webp') {
+            const list = document.createElement('ul');
+            ['png', 'jpeg'].forEach(format => {
+                 const li = document.createElement('li');
+                 li.textContent = `转为 ${format.toUpperCase()}`;
+                 li.onclick = () => convertFile(currentDetailItem.path, format, { scale: 1.0 }, true);
+                 list.appendChild(li);
+            });
+            convertPopover.appendChild(list);
+            convertPopover.classList.add('is-visible');
+        }
+    });
+    detailConvertGroup.addEventListener('mouseleave', () => convertPopover.classList.remove('is-visible'));
+
+
+    // Convert Forms
+    webpConvertForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const targetFormat = document.getElementById('webp-target-format').value;
+        const scale = document.getElementById('webp-scale-input').value;
+        convertFile(currentDetailItem.path, targetFormat, { scale }, false, 'webp');
+    });
+
+    webmConvertForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const params = {
+            scale: document.getElementById('webm-scale-input').value,
+            algorithm: document.getElementById('webm-algorithm').value,
+            reserve_transparent: document.getElementById('webm-reserve-transparent').checked,
+            alpha_threshold: document.getElementById('webm-threshold-input').value,
+        };
+        convertFile(currentDetailItem.path, 'gif', params, false, 'webm');
+    });
+    
+    // --- Dynamic Form Interactions ---
+    setupSliderSync('webp-scale-slider', 'webp-scale-input', 'webp-scale-display');
+    setupSliderSync('webm-scale-slider', 'webm-scale-input', 'webm-scale-display');
+    setupSliderSync('webm-threshold-slider', 'webm-threshold-input', 'webm-threshold-display');
+    
+    webmReserveTransparent.addEventListener('change', (e) => {
+        const isDisabled = !e.target.checked;
+        webmThresholdGroup.style.opacity = isDisabled ? '0.5' : '1';
+        webmThresholdGroup.querySelectorAll('input').forEach(i => i.disabled = isDisabled);
+    });
+
+    // --- API Calls & Logic ---
+    async function handleSearch(e) {
+        e.preventDefault();
+        const query = document.getElementById('query').value;
+        const topK = document.getElementById('top_k').value;
+        if (!query) { alert('请输入搜索描述!'); return; }
+        
+        statusMessage.textContent = '正在搜索中...';
+        searchResults.innerHTML = '';
+        e.target.querySelector('button').disabled = true;
+
+        try {
+            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}&top_k=${topK}`);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                statusMessage.textContent = '';
+                if (data.results.length === 0) {
+                    statusMessage.textContent = '未找到匹配的图片。';
+                } else {
+                    data.results.forEach(item => {
+                        const resultElement = document.createElement('figure');
+                        resultElement.className = 'result-item';
+                        resultElement.dataset.itemData = JSON.stringify(item);
+                        resultElement.innerHTML = `
+                            ${createMediaElement(item).outerHTML}
+                            <figcaption>匹配度: ${item.score.toFixed(4)}</figcaption>`;
+                        searchResults.appendChild(resultElement);
+                    });
+                }
+            } else {
+                statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>搜索失败:</strong> ${data.message}</span>`;
+            }
+        } catch (error) {
+            statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</span>`;
+        } finally {
+            e.target.querySelector('button').disabled = false;
+        }
+    }
+
+    async function copyFile(path, preferredFormat = null) {
+        showToast('正在拷贝...');
+        const body = { path };
+        if (preferredFormat) {
+            body.preferred_format = preferredFormat;
+        }
+        try {
+            const response = await fetch('/api/copy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            showToast(response.ok ? `✅ ${data.message}` : `❌ ${data.message}`);
+        } catch (err) {
+            showToast('❌ 拷贝失败，请检查服务是否运行。');
+        }
+    }
+    
+    async function convertFile(source_path, target_format, params, shouldCopy = false, viewType = null) {
+        let statusElem, submitBtn;
+        if(viewType === 'webp') {
+            statusElem = webpConvertStatus;
+            submitBtn = webpConvertForm.querySelector('button[type="submit"]');
+        } else if (viewType === 'webm') {
+            statusElem = webmConvertStatus;
+            submitBtn = webmConvertForm.querySelector('button[type="submit"]');
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '转换中...';
+        } else {
+            showToast('正在转换...');
+        }
+        
+        if (statusElem) {
+            statusElem.classList.add('hidden');
+        }
+
+        try {
+            const response = await fetch('/api/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source_path, target_format, params })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                if(shouldCopy) {
+                    copyFile(data.output_path);
+                } else if (statusElem) {
+                    statusElem.className = 'convert-status success';
+                    const newFileName = data.output_path.split('/').pop();
+                    statusElem.innerHTML = `转换成功: ${newFileName}！<span data-path="${data.output_path}">点击此处拷贝</span>`;
+                    statusElem.querySelector('span').onclick = (e) => copyFile(e.target.dataset.path);
+                    statusElem.classList.remove('hidden');
+                } else {
+                     showToast(`✅ 转换成功: ${data.output_path.split('/').pop()}`);
+                }
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (err) {
+            const errorMessage = err.message || '网络或服务器错误';
+            if (statusElem) {
+                 statusElem.className = 'convert-status error';
+                 statusElem.textContent = `转换失败: ${errorMessage}`;
+                 statusElem.classList.remove('hidden');
+            } else {
+                 showToast(`❌ 转换失败: ${errorMessage}`);
+            }
+        } finally {
+             if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '开始转换';
+             }
+        }
+    }
+
+    // --- Helper Functions ---
+    function createMediaElement(item) {
+        let mediaElement;
+        if (item.type === '.webm' || item.type === '.mp4') {
+            mediaElement = document.createElement('video');
+            mediaElement.src = item.url;
+            mediaElement.autoplay = true;
+            mediaElement.loop = true;
+            mediaElement.muted = true;
+            mediaElement.playsInline = true;
+        } else {
+            mediaElement = document.createElement('img');
+            mediaElement.src = item.url;
+            mediaElement.loading = 'lazy';
+        }
+        mediaElement.alt = item.filename;
+        return mediaElement;
+    }
+
+    function setupSliderSync(sliderId, inputId, displayId) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+        const display = document.getElementById(displayId);
+        slider.addEventListener('input', () => {
+            input.value = slider.value;
+            if (display) display.textContent = slider.value;
+        });
+        input.addEventListener('input', () => {
+            slider.value = input.value;
+            if (display) display.textContent = input.value;
+        });
+    }
+
+    function formatBytes(bytes, decimals = 2) {
+        if (!bytes || bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    let toastTimer;
+    function showToast(message) {
+        clearTimeout(toastTimer);
+        copyToast.textContent = message;
+        copyToast.classList.add('show');
+        toastTimer = setTimeout(() => {
+            copyToast.classList.remove('show');
+        }, 3000);
+    }
+    
+    // --- Modal Logic --- (unchanged)
     const modal = document.getElementById('settings-modal');
     const openModalBtn = document.getElementById('open-settings-modal');
     const closeModalBtn = document.getElementById('close-settings-modal');
     const indexForm = document.getElementById('index-form');
     const indexResults = document.getElementById('index-results');
-
     function openModal() { modal.classList.add('is-open'); }
     function closeModal() { modal.classList.remove('is-open'); }
-
     openModalBtn.onclick = openModal;
     closeModalBtn.onclick = closeModal;
     modal.onclick = (event) => { if (event.target === modal) closeModal(); };
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
-
     indexForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const imageDir = document.getElementById('image-dir').value;
         if (!imageDir) { alert('请输入图片文件夹路径!'); return; }
         const indexButton = document.getElementById('index-button');
-        setLoading(indexButton, indexResults, '正在处理索引，请稍候...');
+        indexButton.disabled = true;
+        indexButton.textContent = '处理中...';
+        indexResults.innerHTML = `<p>正在处理索引，请稍候...</p>`;
         
         try {
             const response = await fetch('/api/index', {
@@ -385,97 +814,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ image_dir: imageDir })
             });
             const data = await response.json();
-            handleApiResponse(data, indexResults, '操作成功', '操作失败');
-        } catch (error) {
-            indexResults.innerHTML = `<p style="color: red;"><strong>网络或服务器错误:</strong> ${error}</p>`;
-        } finally {
-            resetButton(indexButton, '开始/更新索引');
-        }
-    });
-
-    searchForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const query = document.getElementById('query').value;
-        const topK = document.getElementById('top_k').value;
-        if (!query) { alert('请输入搜索描述!'); return; }
-        const searchButton = document.querySelector('.search-button');
-        
-        statusMessage.textContent = '正在搜索中...';
-        searchResults.innerHTML = '';
-        searchButton.disabled = true;
-
-        const params = new URLSearchParams({ query: query, top_k: topK });
-        
-        try {
-            const response = await fetch(`/api/search?${params.toString()}`);
-            const data = await response.json();
-            
-            statusMessage.textContent = '';
-            
-            if (data.status === 'success') {
-                if (data.results.length === 0) {
-                    statusMessage.textContent = '未找到匹配的图片。';
-                } else {
-                    // --- 核心修改从这里开始 ---
-                    data.results.forEach((item, index) => {
-                        const resultElement = document.createElement('figure');
-                        resultElement.className = 'result-item';
-                        resultElement.style.animationDelay = `${index * 50}ms`;
-                        
-                        let mediaElement;
-                        // 检查文件扩展名
-                        if (item.url.toLowerCase().endsWith('.webm') || item.url.toLowerCase().endsWith('.mp4')) {
-                            // 如果是 .webm 或 .mp4，创建 <video> 标签
-                            mediaElement = `
-                                <video src="${item.url}" 
-                                       autoplay 
-                                       loop 
-                                       muted 
-                                       playsinline 
-                                       alt="${item.url}">
-                                </video>
-                            `;
-                        } else {
-                            // 否则，创建 <img> 标签
-                            mediaElement = `<img src="${item.url}" alt="${item.url}" loading="lazy">`;
-                        }
-
-                        resultElement.innerHTML = `
-                            ${mediaElement}
-                            <figcaption>匹配度: ${item.score.toFixed(4)}</figcaption>
-                        `;
-                        searchResults.appendChild(resultElement);
-                    });
-                    // --- 核心修改在这里结束 ---
-                }
+            if (data.status === 'success' && data.summary) {
+                indexResults.innerHTML = `<p style="color: var(--md-sys-success);">${data.summary.message}</p>`;
             } else {
-                statusMessage.innerHTML = `<span style="color: red;"><strong>搜索失败:</strong> ${data.message}</span>`;
+                indexResults.innerHTML = `<p style="color: var(--md-sys-error);">${data.message}</p>`;
             }
         } catch (error) {
-            statusMessage.innerHTML = `<span style="color: red;"><strong>网络或服务器错误:</strong> ${error}</span>`;
+            indexResults.innerHTML = `<p style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</p>`;
         } finally {
-            searchButton.disabled = false;
+            indexButton.disabled = false;
+            indexButton.textContent = '开始/更新索引';
         }
     });
-
-    function setLoading(button, resultArea, message) {
-        button.disabled = true;
-        button.textContent = '处理中...';
-        resultArea.innerHTML = `<p style="font-style: italic; color: var(--md-sys-on-surface-variant);">${message}</p>`;
-    }
-
-    function resetButton(button, text) {
-        button.disabled = false;
-        button.textContent = text;
-    }
-    
-    function handleApiResponse(data, resultArea, successPrefix, errorPrefix) {
-        if (data.status === 'success') {
-            resultArea.innerHTML = `<p style="color: green;"><strong>${successPrefix}:</strong> ${data.summary.message}</p>`;
-        } else {
-            resultArea.innerHTML = `<p style="color: red;"><strong>${errorPrefix}:</strong> ${data.message}</p>`;
-        }
-    }
 });
 </script>
 
