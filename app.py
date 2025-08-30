@@ -15,7 +15,7 @@ from image_search_core.converter import convert_webm_to_gif, convert_webp
 
 app = Flask(__name__)
 
-# --- 新增：定义转换后文件的存放目录 ---
+# --- 定义转换后文件的存放目录 ---
 CONVERTED_DIR = 'stickers_converted'
 
 
@@ -42,11 +42,21 @@ def home():
 
 @app.route('/images/<path:filename>')
 def serve_image(filename):
-    """安全地提供图片文件服务。"""
+    """安全地提供原始图片文件服务。"""
     image_base_dir = get_persisted_image_dir()
     if image_base_dir and os.path.exists(os.path.join(image_base_dir, filename)):
         return send_from_directory(image_base_dir, filename)
     return "图片根目录未配置或图片不存在。", 404
+
+# --- 已修复的路由：路径与目录名匹配 ---
+@app.route('/stickers_converted/<path:filename>')
+def serve_converted_image(filename):
+    """安全地提供转换后的图片文件服务。"""
+    converted_dir_abs = os.path.abspath(CONVERTED_DIR)
+    if os.path.exists(os.path.join(converted_dir_abs, filename)):
+        return send_from_directory(converted_dir_abs, filename)
+    return "转换后的图片不存在。", 404
+    
 
 # --- API 端点 ---
 
@@ -176,11 +186,10 @@ def api_copy_file():
     else:
         return jsonify({"status": "error", "message": message}), 500
 
-
 @app.route('/api/find_relatives', methods=['GET'])
 def api_find_relatives():
     """
-    API 端点：查找同一目录下所有同基本名的文件。
+    API 端点：查找同一目录下以及转换目录中所有同基本名的文件，并返回它们的详细信息。
     """
     relative_path = request.args.get('path')
     if not relative_path:
@@ -191,15 +200,64 @@ def api_find_relatives():
         return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
         
     full_path = os.path.join(image_base_dir, relative_path)
-    directory = os.path.dirname(full_path)
     base_name = os.path.splitext(os.path.basename(full_path))[0]
 
-    search_pattern = os.path.join(directory, base_name + ".*")
-    found_files = glob.glob(search_pattern)
-
-    relative_files = [os.path.relpath(f, image_base_dir).replace('\\', '/') for f in found_files]
+    source_directory = os.path.dirname(full_path)
+    source_search_pattern = os.path.join(source_directory, base_name + ".*")
     
-    return jsonify({"status": "success", "files": sorted(relative_files)})
+    converted_dir_abs = os.path.abspath(CONVERTED_DIR)
+    converted_search_pattern = os.path.join(converted_dir_abs, base_name + ".*")
+
+    found_files_abs = set(glob.glob(source_search_pattern) + glob.glob(converted_search_pattern))
+
+    detailed_files = []
+    for f_abs in sorted(list(found_files_abs)):
+        try:
+            file_url = ''
+            file_rel_path = ''
+            
+            # 判断文件来源并生成正确的 URL 和相对路径
+            # url_for 会根据已修复的路由，自动生成正确的 /stickers_converted/... 路径
+            if f_abs.startswith(converted_dir_abs):
+                file_rel_path = os.path.relpath(f_abs, converted_dir_abs).replace('\\', '/')
+                file_url = url_for('serve_converted_image', filename=file_rel_path)
+            elif f_abs.startswith(image_base_dir):
+                file_rel_path = os.path.relpath(f_abs, image_base_dir).replace('\\', '/')
+                file_url = url_for('serve_image', filename=file_rel_path)
+            else:
+                continue
+
+            file_info = {
+                'path': file_rel_path,
+                'url': file_url,
+                'filename': os.path.basename(f_abs),
+                'format': os.path.splitext(f_abs)[1].lower().replace('.', ''),
+                'size': os.path.getsize(f_abs),
+                'dimensions': [0, 0]
+            }
+            
+            # 获取尺寸
+            try:
+                if f_abs.lower().endswith(('.webm', '.mp4', '.gif')):
+                    cap = cv2.VideoCapture(f_abs)
+                    if cap.isOpened():
+                        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        file_info['dimensions'] = [width, height]
+                    cap.release()
+                else:
+                    with Image.open(f_abs) as img:
+                        width, height = img.size
+                        file_info['dimensions'] = [width, height]
+            except Exception as e_dim:
+                print(f"警告: 无法获取文件尺寸 {f_abs}。错误: {e_dim}")
+            
+            detailed_files.append(file_info)
+        except Exception as e_meta:
+            print(f"警告: 无法获取文件元数据 {f_abs}。错误: {e_meta}")
+            continue
+            
+    return jsonify({"status": "success", "files": detailed_files})
 
 @app.route('/api/convert', methods=['POST'])
 def api_convert_file():
@@ -214,11 +272,9 @@ def api_convert_file():
     if not all([source_path_rel, target_format]):
         return jsonify({"status": "error", "message": "缺少 source_path 或 target_format 参数。"}), 400
 
-    # --- 核心修改：确保输出目录存在 ---
     output_dir_abs = os.path.abspath(CONVERTED_DIR)
     os.makedirs(output_dir_abs, exist_ok=True)
     
-    # --- 核心修改：构建源文件和目标文件的路径 ---
     image_base_dir = get_persisted_image_dir()
     if not image_base_dir:
         return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
@@ -227,7 +283,6 @@ def api_convert_file():
     if not os.path.exists(source_path_abs):
         return jsonify({"status": "error", "message": f"源文件不存在: {source_path_rel}"}), 404
 
-    # 构建输出文件名和路径
     base_name = os.path.splitext(os.path.basename(source_path_rel))[0]
     new_filename = f"{base_name}.{target_format.lower()}"
     output_path_abs = os.path.join(output_dir_abs, new_filename)
@@ -241,7 +296,7 @@ def api_convert_file():
         else:
             return jsonify({"status": "error", "message": f"不支持从 {source_ext} 格式转换。"}), 400
         
-        # 返回新的文件名，而不是相对路径
+        # 返回新的文件名，供前端使用
         return jsonify({"status": "success", "message": "转换成功！", "output_path": new_filename})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

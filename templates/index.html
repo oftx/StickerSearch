@@ -177,7 +177,30 @@
             display: block;
             text-align: center;
         }
-        
+        /* --- 关联文件展示样式 --- */
+        #detail-relatives-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            width: 100%;
+        }
+        .relative-item {
+            text-align: center;
+        }
+        .relative-item img, .relative-item video {
+            max-width: 100%;
+            max-height: 250px; /* 限制最大高度避免列表过长 */
+            object-fit: contain;
+            border-radius: var(--border-radius-small);
+            margin-bottom: 8px;
+            background-color: var(--md-sys-surface);
+        }
+        .relative-item-info {
+            font-size: 0.9rem;
+            color: var(--md-sys-on-surface-variant);
+        }
+
         .form-group { margin-bottom: 1.2rem; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--md-sys-on-surface); }
         .form-group select, .form-group input[type="text"], .form-group input[type="number"] { width: 100%; padding: 12px; border-radius: var(--border-radius-small); border: 1px solid var(--md-sys-outline); background-color: var(--md-sys-surface-container); color: var(--md-sys-on-surface); font-size: 1rem; }
@@ -188,9 +211,9 @@
         .form-group .range-group input[type="number"] { width: 70px; }
         .form-group:has(input:disabled) { opacity: 0.5; }
 
-        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: var(--md-sys-surface-container); border-radius: 4px; outline: none; opacity: 0.8; transition: opacity .2s; }
+        input[type="range"] { width: 100%; height: 8px; background: var(--md-sys-surface-container); border-radius: 4px; outline: none; opacity: 0.8; transition: opacity .2s; }
         input[type="range"]:hover { opacity: 1; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        input[type="range"]::-webkit-slider-thumb { width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
         .convert-status { margin-top: 1.5rem; padding: 1rem; border-radius: var(--border-radius-small); word-break: break-word; }
@@ -198,6 +221,7 @@
         .convert-status.success span { text-decoration: underline; cursor: pointer; font-weight: bold; }
         .convert-status.error { background-color: var(--md-sys-error-container); color: var(--md-sys-on-error-container); white-space: pre-wrap; }
         
+        /* --- Popover 样式 --- */
         .popover {
             position: absolute;
             bottom: 110%;
@@ -211,16 +235,32 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.2s var(--transition-easing);
-            min-width: 150px;
+            min-width: 200px;
+            transform-origin: bottom center;
         }
         .popover.is-visible {
             opacity: 1;
             visibility: visible;
             transform: translateX(-50%) translateY(-10px);
         }
-        .popover ul { list-style: none; margin: 0; padding: 6px; }
-        .popover li { padding: 6px 12px; cursor: pointer; border-radius: var(--border-radius-small); font-size: 0.9rem; }
-        .popover li:hover { background-color: var(--md-sys-surface-container); }
+        .popover ul {
+            list-style: none;
+            margin: 0;
+            padding: 8px;
+        }
+        .popover li {
+            padding: 8px 12px;
+            margin: 0;
+            cursor: pointer;
+            border-radius: var(--border-radius-small);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .popover li:hover {
+            background-color: var(--md-sys-surface-container);
+        }
         
         #copy-toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background-color: rgba(20, 20, 20, 0.85); color: white; padding: 12px 24px; border-radius: var(--border-radius-large); z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s, transform 0.3s; }
         #copy-toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-10px); }
@@ -289,7 +329,11 @@
     <!-- Detail View -->
     <div id="view-detail" class="app-view detail-container hidden">
         <div class="content-wrapper">
-            <div class="preview-pane" id="detail-media-container"></div>
+            <div class="preview-pane">
+                <div id="detail-media-container"></div>
+                <!-- 新增：用于显示关联文件的容器 -->
+                <div id="detail-relatives-container" class="hidden"></div>
+            </div>
             <div class="info-pane">
                 <ul>
                     <li><strong>文件名:</strong> <span id="detail-filename"></span></li>
@@ -302,7 +346,10 @@
                         <button class="action-button" id="copy-image-btn">拷贝图像</button>
                         <div class="popover" id="copy-popover"></div>
                     </div>
-                    <div class="action-group" id="detail-convert-group">
+                    <!-- 新增：切换所有图像的链接 -->
+                    <a class="custom-convert-link" id="toggle-relatives-link" style="margin-top: 0;">查看所有图像 ></a>
+                    
+                    <div class="action-group" id="detail-convert-group" style="margin-top: 8px;">
                         <button class="action-button secondary-button" id="convert-gif-btn">转为 GIF</button>
                         <div class="popover" id="convert-popover"></div>
                     </div>
@@ -337,7 +384,7 @@
                     </div>
                     <div class="action-group">
                         <button type="submit" class="action-button">开始转换</button>
-                        <button type="button" class="action-button secondary-button" id="back-from-webp-convert-btn">返回</button>
+                        <button type="button" class="action-button secondary-button" id="back-from-webp-convert-btn" style="margin-top: 12px;">返回</button>
                     </div>
                 </form>
                 <div id="webp-convert-status" class="convert-status hidden"></div>
@@ -372,22 +419,9 @@
                             <option value="spline">spline (高质量)</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <div class="checkbox-group">
-                           <input type="checkbox" id="webm-reserve-transparent" checked>
-                           <label for="webm-reserve-transparent">保留不透明度</label>
-                        </div>
-                    </div>
-                     <div class="form-group" id="webm-threshold-group">
-                        <label for="webm-threshold-input">不透明度阈值: <span id="webm-threshold-display">128</span></label>
-                        <div class="range-group">
-                             <input type="range" id="webm-threshold-slider" min="0" max="255" step="1" value="128">
-                             <input type="number" id="webm-threshold-input" min="0" max="255" step="1" value="128">
-                        </div>
-                    </div>
                     <div class="action-group">
                         <button type="submit" class="action-button">开始转换</button>
-                        <button type="button" class="action-button secondary-button" id="back-from-webm-convert-btn">返回</button>
+                        <button type="button" class="action-button secondary-button" id="back-from-webm-convert-btn" style="margin-top: 12px;">返回</button>
                     </div>
                 </form>
                 <div id="webm-convert-status" class="convert-status hidden"></div>
@@ -418,6 +452,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Global State ---
     let currentDetailItem = null;
+    let popoverHideTimer = null;
+    const isLocalAccess = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
     // --- Element Caching ---
     const views = {
@@ -433,6 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Detail View Elements
     const detailMediaContainer = document.getElementById('detail-media-container');
+    const detailRelativesContainer = document.getElementById('detail-relatives-container'); 
+    const toggleRelativesLink = document.getElementById('toggle-relatives-link'); 
     const copyImageBtn = document.getElementById('copy-image-btn');
     const copyPopover = document.getElementById('copy-popover');
     const detailCopyGroup = document.getElementById('detail-copy-group');
@@ -448,8 +486,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // WebM Convert View Elements
     const webmConvertForm = document.getElementById('webm-convert-form');
     const webmConvertStatus = document.getElementById('webm-convert-status');
-    const webmReserveTransparent = document.getElementById('webm-reserve-transparent');
-    const webmThresholdGroup = document.getElementById('webm-threshold-group');
 
     // --- View Management ---
     function showView(viewName, data = null) {
@@ -469,14 +505,46 @@ document.addEventListener('DOMContentLoaded', () => {
             populateWebmConvertView(data);
         }
     }
+    
+    async function populateDetailView(item) {
+        // Reset view state
+        detailMediaContainer.classList.remove('hidden');
+        detailRelativesContainer.classList.add('hidden');
+        detailRelativesContainer.innerHTML = '';
+        copyPopover.innerHTML = '';
+        convertPopover.innerHTML = '';
 
-    // --- Data Population ---
-    function populateDetailView(item) {
         detailMediaContainer.innerHTML = createMediaElement(item).outerHTML;
         document.getElementById('detail-filename').textContent = item.filename;
         document.getElementById('detail-size').textContent = formatBytes(item.size);
         document.getElementById('detail-dimensions').textContent = item.dimensions ? item.dimensions.join(' x ') : 'N/A';
         document.getElementById('detail-date').textContent = new Date(item.date).toLocaleDateString();
+
+        // --- NEW: Dynamic button logic based on access type ---
+        // First, remove any existing listeners to prevent them from stacking up
+        copyImageBtn.removeEventListener('click', handleCopyClick);
+        copyImageBtn.removeEventListener('click', handleToggleRelatives);
+        toggleRelativesLink.removeEventListener('click', handleToggleRelatives);
+
+        if (isLocalAccess) {
+            // On local access, show the "Copy" button and the helper link
+            copyImageBtn.textContent = '拷贝图像';
+            copyImageBtn.addEventListener('click', handleCopyClick);
+            
+            toggleRelativesLink.innerHTML = '查看所有图像 >';
+            toggleRelativesLink.addEventListener('click', handleToggleRelatives);
+
+            detailCopyGroup.classList.remove('hidden');
+            toggleRelativesLink.classList.remove('hidden');
+        } else {
+            // On remote access, replace the "Copy" button's function with "View All"
+            copyImageBtn.textContent = '查看所有图像';
+            copyImageBtn.addEventListener('click', handleToggleRelatives);
+            
+            detailCopyGroup.classList.remove('hidden'); // The main button is now our toggle
+            toggleRelativesLink.classList.add('hidden'); // Hide the helper link as it's redundant
+        }
+        // --- END of new logic ---
 
         if (item.type === '.webp' || item.type === '.webm') {
             detailConvertGroup.classList.remove('hidden');
@@ -485,7 +553,52 @@ document.addEventListener('DOMContentLoaded', () => {
             detailConvertGroup.classList.add('hidden');
             customConvertLink.classList.add('hidden');
         }
+
+        // Pass the access flag to updatePopovers
+        await updatePopovers(item, isLocalAccess);
     }
+    
+    async function updatePopovers(item, isLocal = true) {
+        // Only populate the copy-related popover on local access
+        if (isLocal) {
+            try {
+                const response = await fetch(`/api/find_relatives?path=${encodeURIComponent(item.path)}`);
+                const data = await response.json();
+                if (data.status === 'success' && data.files.length > 1) {
+                    const list = document.createElement('ul');
+                    data.files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.textContent = file.filename;
+                        li.title = file.filename;
+                        li.onclick = () => {
+                            const location = file.url.includes('stickers_converted') ? 'converted' : 'index';
+                            copyFile(file.path, null, location);
+                            copyPopover.classList.remove('is-visible');
+                        };
+                        list.appendChild(li);
+                    });
+                    copyPopover.appendChild(list);
+                }
+            } catch (err) {
+                console.error("Failed to prepare copy popover:", err);
+            }
+        }
+
+        if (item.type === '.webp') {
+            const list = document.createElement('ul');
+            ['png', 'jpeg'].forEach(format => {
+                 const li = document.createElement('li');
+                 li.textContent = `转为 ${format.toUpperCase()}`;
+                 li.onclick = () => {
+                     convertFile(item.path, format, { scale: 1.0 }, true);
+                     convertPopover.classList.remove('is-visible');
+                 };
+                 list.appendChild(li);
+            });
+            convertPopover.appendChild(list);
+        }
+    }
+
 
     function populateWebpConvertView(item) {
         document.getElementById('webp-convert-preview').innerHTML = createMediaElement(item).outerHTML;
@@ -499,14 +612,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('webm-convert-preview').innerHTML = createMediaElement(item).outerHTML;
         webmConvertForm.reset();
         document.getElementById('webm-scale-display').textContent = '1';
-        document.getElementById('webm-threshold-display').textContent = '128';
-        webmThresholdGroup.style.opacity = '1';
-        webmThresholdGroup.querySelectorAll('input').forEach(i => i.disabled = false);
         webmConvertStatus.classList.add('hidden');
     }
 
-
-    // --- Event Handlers ---
+    // --- Event Handlers & Named Functions ---
     searchForm.addEventListener('submit', handleSearch);
     searchResults.addEventListener('click', (e) => {
         const itemElement = e.target.closest('.result-item');
@@ -521,14 +630,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('back-from-webm-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
 
     // Detail View Actions
-    copyImageBtn.addEventListener('click', () => {
+    function handleCopyClick() {
         const preferredFormat = (currentDetailItem.type === '.webp' || currentDetailItem.type === '.webm') ? '.gif' : null;
         copyFile(currentDetailItem.path, preferredFormat);
-    });
+    }
     
     convertGifBtn.addEventListener('click', () => {
         if (!currentDetailItem) return;
-        const defaultParams = { scale: 1.0, algorithm: 'lanczos', reserve_transparent: true, alpha_threshold: 128 };
+        const defaultParams = { scale: 1.0, algorithm: 'lanczos' };
         convertFile(currentDetailItem.path, 'gif', defaultParams, true);
     });
     
@@ -541,41 +650,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Popovers Logic
-    detailCopyGroup.addEventListener('mouseenter', async () => {
-        if (!currentDetailItem) return;
-        const response = await fetch(`/api/find_relatives?path=${encodeURIComponent(currentDetailItem.path)}`);
-        const data = await response.json();
-        copyPopover.innerHTML = '';
-        if (data.status === 'success' && data.files.length > 1) {
-            const list = document.createElement('ul');
-            data.files.forEach(file => {
-                const li = document.createElement('li');
-                li.textContent = file.split('/').pop();
-                li.onclick = () => copyFile(file, null, 'index');
-                list.appendChild(li);
-            });
-            copyPopover.appendChild(list);
+    // Popover Interaction
+    detailCopyGroup.addEventListener('mouseenter', () => {
+        if (isLocalAccess && copyPopover.innerHTML.trim() !== '') {
+            clearTimeout(popoverHideTimer);
             copyPopover.classList.add('is-visible');
         }
     });
-    detailCopyGroup.addEventListener('mouseleave', () => copyPopover.classList.remove('is-visible'));
+
+    detailCopyGroup.addEventListener('mouseleave', () => {
+        popoverHideTimer = setTimeout(() => {
+            copyPopover.classList.remove('is-visible');
+        }, 300);
+    });
 
     detailConvertGroup.addEventListener('mouseenter', () => {
-        convertPopover.innerHTML = '';
-        if (currentDetailItem && currentDetailItem.type === '.webp') {
-            const list = document.createElement('ul');
-            ['png', 'jpeg'].forEach(format => {
-                 const li = document.createElement('li');
-                 li.textContent = `转为 ${format.toUpperCase()}`;
-                 li.onclick = () => convertFile(currentDetailItem.path, format, { scale: 1.0 }, true);
-                 list.appendChild(li);
-            });
-            convertPopover.appendChild(list);
+        if (convertPopover.innerHTML.trim() !== '') {
+            clearTimeout(popoverHideTimer);
             convertPopover.classList.add('is-visible');
         }
     });
-    detailConvertGroup.addEventListener('mouseleave', () => convertPopover.classList.remove('is-visible'));
+
+    detailConvertGroup.addEventListener('mouseleave', () => {
+        popoverHideTimer = setTimeout(() => {
+            convertPopover.classList.remove('is-visible');
+        }, 300);
+    });
 
     // Convert Forms
     webpConvertForm.addEventListener('submit', e => {
@@ -590,21 +690,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = {
             scale: document.getElementById('webm-scale-input').value,
             algorithm: document.getElementById('webm-algorithm').value,
-            reserve_transparent: document.getElementById('webm-reserve-transparent').checked,
-            alpha_threshold: document.getElementById('webm-threshold-input').value,
         };
         convertFile(currentDetailItem.path, 'gif', params, false, 'webm');
     });
     
     setupSliderSync('webp-scale-slider', 'webp-scale-input', 'webp-scale-display');
     setupSliderSync('webm-scale-slider', 'webm-scale-input', 'webm-scale-display');
-    setupSliderSync('webm-threshold-slider', 'webm-threshold-input', 'webm-threshold-display');
-    
-    webmReserveTransparent.addEventListener('change', (e) => {
-        const isDisabled = !e.target.checked;
-        webmThresholdGroup.style.opacity = isDisabled ? '0.5' : '1';
-        webmThresholdGroup.querySelectorAll('input').forEach(i => i.disabled = isDisabled);
-    });
 
     // --- API Calls & Logic ---
     async function handleSearch(e) {
@@ -643,6 +734,53 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</span>`;
         } finally {
             e.target.querySelector('button').disabled = false;
+        }
+    }
+
+    async function handleToggleRelatives() {
+        if (!currentDetailItem) return;
+
+        const isHidden = detailRelativesContainer.classList.contains('hidden');
+        const buttonToUpdate = isLocalAccess ? toggleRelativesLink : copyImageBtn;
+
+        if (isHidden) { // If showing relatives
+            buttonToUpdate.textContent = '加载中...';
+            try {
+                const response = await fetch(`/api/find_relatives?path=${encodeURIComponent(currentDetailItem.path)}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    detailRelativesContainer.innerHTML = '';
+                    data.files.forEach(file => {
+                        const itemContainer = document.createElement('div');
+                        itemContainer.className = 'relative-item';
+                        itemContainer.appendChild(createMediaElement({ url: file.url, filename: file.filename, type: `.${file.format}` }));
+                        const info = document.createElement('div');
+                        info.className = 'relative-item-info';
+                        info.textContent = `${file.format} ${formatBytes(file.size)} ${file.dimensions.join('x')}`;
+                        itemContainer.appendChild(info);
+                        detailRelativesContainer.appendChild(itemContainer);
+                    });
+
+                    detailMediaContainer.classList.add('hidden');
+                    detailRelativesContainer.classList.remove('hidden');
+                    if (isLocalAccess) buttonToUpdate.innerHTML = '隐藏所有图像 >';
+                    else buttonToUpdate.textContent = '隐藏所有图像';
+                } else {
+                    showToast(`❌ 获取关联文件失败: ${data.message}`);
+                    if (isLocalAccess) buttonToUpdate.innerHTML = '查看所有图像 >';
+                    else buttonToUpdate.textContent = '查看所有图像';
+                }
+            } catch (err) {
+                showToast('❌ 网络或服务器错误');
+                if (isLocalAccess) buttonToUpdate.innerHTML = '查看所有图像 >';
+                else buttonToUpdate.textContent = '查看所有图像';
+            }
+        } else { // If hiding relatives
+            detailRelativesContainer.classList.add('hidden');
+            detailMediaContainer.classList.remove('hidden');
+            if (isLocalAccess) buttonToUpdate.innerHTML = '查看所有图像 >';
+            else buttonToUpdate.textContent = '查看所有图像';
         }
     }
 

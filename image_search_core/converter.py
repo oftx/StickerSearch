@@ -41,26 +41,29 @@ def convert_webm_to_gif(source_path, output_path, params):
     # 从 params 获取参数，并提供默认值
     scale = float(params.get('scale', 1.0))
     algorithm = params.get('algorithm', 'lanczos')
-    reserve_transparent = bool(params.get('reserve_transparent', True))
-    alpha_threshold = int(params.get('alpha_threshold', 128))
-
+    
     target_width = max(2, int(original_width * scale))
     # 确保宽度为偶数，某些编码器需要
     if target_width % 2 != 0:
         target_width -= 1
-
-    scale_filter = f"scale={target_width}:-1:flags={algorithm}"
     
-    # --- 核心修改：根据 reserve_transparent 参数动态构建 filter_complex ---
-    palettegen_options = "stats_mode=single"
-    if reserve_transparent:
-        palettegen_options += ":reserve_transparent=on"
-        paletteuse_options = f"dither=bayer:bayer_scale=5:alpha_threshold={alpha_threshold}"
-    else:
-        paletteuse_options = "dither=bayer:bayer_scale=5" # 不使用 alpha_threshold
+    base_filter_chain = []
+    
+    # --- 修复点 ---
+    # 移除 `if scale != 1.0` 的条件，确保 scale 滤镜总是被应用，
+    # 这样即使用户不缩放，选择的 `algorithm` 也能生效。
+    scale_filter = f"scale={target_width}:-1:flags={algorithm}"
+    base_filter_chain.append(scale_filter)
+        
+    base_filter_chain.append("split[s0][s1]")
+    base_filters_str = ",".join(base_filter_chain)
+
+    # 调色板选项被硬编码以始终保留透明度
+    palettegen_options = "stats_mode=single:reserve_transparent=on"
+    paletteuse_options = "dither=bayer:bayer_scale=5:alpha_threshold=128"
 
     filter_complex = (
-        f"{scale_filter},split[s0][s1];"
+        f"{base_filters_str};"
         f"[s0]palettegen={palettegen_options}[p];"
         f"[s1][p]paletteuse={paletteuse_options}"
     )
