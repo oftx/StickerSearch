@@ -31,27 +31,92 @@ def get_persisted_image_dir():
     except (IOError, json.JSONDecodeError):
         return None
 
-# --- 网页端点 ---
+# --- 辅助函数 ---
+def _process_results(results, image_base_dir):
+    """
+    处理搜索结果列表，为每个结果添加详细的元数据和所有可用格式。
+    """
+    detailed_results = []
+    converted_dir_abs = os.path.abspath(CONVERTED_DIR)
 
+    for item in results:
+        path_from_index = item['path']
+        absolute_path = os.path.abspath(path_from_index)
+        
+        if not os.path.exists(absolute_path):
+            continue
+
+        relative_path = os.path.relpath(absolute_path, image_base_dir).replace('\\', '/')
+        item['path'] = relative_path
+        item['url'] = url_for('serve_image', filename=relative_path)
+        item['type'] = os.path.splitext(relative_path)[1].lower()
+
+        item['available_formats'] = []
+        base_name = os.path.splitext(os.path.basename(absolute_path))[0]
+        source_dir = os.path.dirname(absolute_path)
+        
+        source_pattern = os.path.join(source_dir, base_name + ".*")
+        converted_pattern = os.path.join(converted_dir_abs, base_name + ".*")
+        
+        found_files = set(glob.glob(source_pattern) + glob.glob(converted_pattern))
+
+        for f_abs in sorted(list(found_files)):
+            format_info = {}
+            if f_abs.startswith(converted_dir_abs):
+                format_info['location'] = 'converted'
+                format_info['path'] = os.path.relpath(f_abs, converted_dir_abs).replace('\\', '/')
+            elif f_abs.startswith(image_base_dir):
+                format_info['location'] = 'index'
+                format_info['path'] = os.path.relpath(f_abs, image_base_dir).replace('\\', '/')
+            else:
+                continue
+            
+            format_info['format'] = os.path.splitext(f_abs)[1].lower().replace('.', '')
+            item['available_formats'].append(format_info)
+
+        try:
+            item['filename'] = os.path.basename(absolute_path)
+            item['size'] = os.path.getsize(absolute_path)
+            item['date'] = datetime.fromtimestamp(os.path.getmtime(absolute_path)).isoformat() + 'Z'
+            
+            dimensions = [0, 0]
+            try:
+                if absolute_path.lower().endswith(('.webm', '.mp4', '.gif')):
+                    cap = cv2.VideoCapture(absolute_path)
+                    if cap.isOpened():
+                        dimensions = [int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))]
+                    cap.release()
+                else:
+                    with Image.open(absolute_path) as img:
+                        dimensions = list(img.size)
+            except Exception as e_dim:
+                print(f"警告: 无法获取文件尺寸 {absolute_path}。错误: {e_dim}")
+
+            item['dimensions'] = dimensions
+            detailed_results.append(item)
+        except OSError as e_meta:
+            print(f"警告: 无法获取文件元数据 {absolute_path}。错误: {e_meta}")
+            continue
+            
+    return detailed_results
+
+
+# --- 网页端点 ---
 @app.route('/')
 def home():
-    """渲染主页。"""
     persisted_dir = get_persisted_image_dir()
     dir_to_show = persisted_dir or DEFAULT_IMAGE_DIR
     return render_template('index.html', last_indexed_dir=dir_to_show)
 
 @app.route('/images/<path:filename>')
 def serve_image(filename):
-    """安全地提供原始图片文件服务。"""
     image_base_dir = get_persisted_image_dir()
     if image_base_dir and os.path.exists(os.path.join(image_base_dir, filename)):
         return send_from_directory(image_base_dir, filename)
     return "图片根目录未配置或图片不存在。", 404
 
-# --- 已修复的路由：路径与目录名匹配 ---
 @app.route('/stickers_converted/<path:filename>')
 def serve_converted_image(filename):
-    """安全地提供转换后的图片文件服务。"""
     converted_dir_abs = os.path.abspath(CONVERTED_DIR)
     if os.path.exists(os.path.join(converted_dir_abs, filename)):
         return send_from_directory(converted_dir_abs, filename)
@@ -59,10 +124,8 @@ def serve_converted_image(filename):
     
 
 # --- API 端点 ---
-
 @app.route('/api/index', methods=['POST'])
 def api_index_images():
-    """API 端点：触发图片索引过程。"""
     data = request.get_json()
     if not data or 'image_dir' not in data:
         return jsonify({"status": "error", "message": "请求体中缺少 'image_dir' 参数。"}), 400
@@ -83,103 +146,86 @@ def api_index_images():
 
 @app.route('/api/search', methods=['GET'])
 def api_search_images():
-    """API 端点：执行语义搜索并返回包含元数据的详细结果。"""
+    """API 端点：执行文本语义搜索，支持混合图片条件。"""
     query = request.args.get('query')
+    negative_query = request.args.get('negative_query')
+    similar_image_path_rel = request.args.get('similar_image_path') # <-- 新增
     top_k = request.args.get('top_k', 20, type=int)
 
-    if not query:
-        return jsonify({"status": "error", "message": "缺少 'query' URL 参数。"}), 400
+    if not query and not similar_image_path_rel:
+        return jsonify({"status": "error", "message": "缺少 'query' 或 'similar_image_path' URL 参数。"}), 400
     
     image_base_dir = get_persisted_image_dir()
     if not image_base_dir:
         return jsonify({"status": "error", "message": "图片根目录未配置。请先运行一次索引。"}), 400
 
+    similar_image_path_abs = None
+    if similar_image_path_rel:
+        similar_image_path_abs = os.path.abspath(os.path.join(image_base_dir, similar_image_path_rel))
+
     try:
         searcher = ImageSearcher()
-        results = searcher.search(query=query, top_k=top_k)
-        
-        detailed_results = []
-        for item in results:
-            path_from_index = item['path']
-            absolute_path = os.path.abspath(path_from_index)
-            if not os.path.exists(absolute_path):
-                continue
-            
-            relative_path = os.path.relpath(absolute_path, image_base_dir).replace('\\', '/')
-            item['path'] = relative_path
-            item['url'] = url_for('serve_image', filename=relative_path)
-            item['type'] = os.path.splitext(relative_path)[1].lower()
-
-            try:
-                item['filename'] = os.path.basename(absolute_path)
-                item['size'] = os.path.getsize(absolute_path)
-                item['date'] = datetime.fromtimestamp(os.path.getmtime(absolute_path)).isoformat() + 'Z'
-                
-                dimensions = [0, 0]
-                try:
-                    if absolute_path.lower().endswith(('.webm', '.mp4', '.gif')):
-                        cap = cv2.VideoCapture(absolute_path)
-                        if cap.isOpened():
-                            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                            dimensions = [width, height]
-                        cap.release()
-                    else:
-                        with Image.open(absolute_path) as img:
-                            width, height = img.size
-                            dimensions = [width, height]
-                except Exception as e_dim:
-                    print(f"警告: 无法获取文件尺寸 {absolute_path}。错误: {e_dim}")
-
-                item['dimensions'] = dimensions
-                detailed_results.append(item)
-
-            except OSError as e_meta:
-                print(f"警告: 无法获取文件元数据 {absolute_path}。错误: {e_meta}")
-                continue
-
+        results = searcher.search(
+            query=query, 
+            top_k=top_k, 
+            negative_query=negative_query, 
+            similar_image_path=similar_image_path_abs # <-- 新增
+        )
+        detailed_results = _process_results(results, image_base_dir)
         return jsonify({"status": "success", "results": detailed_results})
-    except FileNotFoundError:
-        return jsonify({"status": "error", "message": "索引文件 'image_features.npz' 不存在。请先运行索引。"}), 404
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/api/copy', methods=['POST'])
-def api_copy_file():
-    """
-    API 端点：将文件对象复制到剪贴板。
-    根据 'location' 参数从不同目录查找文件。
-    """
-    data = request.get_json()
-    path = data.get('path')
-    location = data.get('location', 'index') # 'index' or 'converted'
-    preferred_format = data.get('preferred_format')
+@app.route('/api/search_by_image', methods=['GET'])
+def api_search_by_image():
+    """API 端点：执行以图搜图，支持排除关键词。"""
+    path = request.args.get('path')
+    negative_query = request.args.get('negative_query') # <-- 新增
+    top_k = request.args.get('top_k', 20, type=int)
 
     if not path:
+        return jsonify({"status": "error", "message": "缺少 'path' URL 参数。"}), 400
+
+    image_base_dir = get_persisted_image_dir()
+    if not image_base_dir:
+        return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
+    
+    absolute_path = os.path.abspath(os.path.join(image_base_dir, path))
+
+    try:
+        searcher = ImageSearcher()
+        results = searcher.search_by_image(
+            image_path=absolute_path, 
+            top_k=top_k,
+            negative_query=negative_query # <-- 新增
+        )
+        detailed_results = _process_results(results, image_base_dir)
+        return jsonify({"status": "success", "results": detailed_results})
+    except (FileNotFoundError, ValueError) as e:
+        return jsonify({"status": "error", "message": str(e)}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ... 其他 API 端点 (copy, find_relatives, convert) 保持不变 ...
+@app.route('/api/copy', methods=['POST'])
+def api_copy_file():
+    data = request.get_json()
+    path = data.get('path')
+    location = data.get('location', 'index')
+    if not path:
         return jsonify({"status": "error", "message": "请求体中缺少 'path' 参数。"}), 400
-
     path_to_copy = None
-
     if location == 'converted':
         base_dir = os.path.abspath(CONVERTED_DIR)
         path_to_copy = os.path.join(base_dir, path)
-    else: # Default is 'index'
+    else:
         base_dir = get_persisted_image_dir()
         if not base_dir:
             return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
-        
         path_to_copy = os.path.join(base_dir, path)
-        if preferred_format:
-            base, _ = os.path.splitext(path_to_copy)
-            preferred_path = base + preferred_format
-            if os.path.exists(preferred_path):
-                path_to_copy = preferred_path
-
     if not path_to_copy or not os.path.exists(path_to_copy):
         return jsonify({"status": "error", "message": f"文件未找到: {path}"}), 404
-
     success, message = copy_file_to_clipboard(path_to_copy)
-    
     if success:
         message = f"已复制到剪贴板: {os.path.basename(path_to_copy)}"
         return jsonify({"status": "success", "message": message, "copied_file": os.path.basename(path_to_copy)})
@@ -188,36 +234,23 @@ def api_copy_file():
 
 @app.route('/api/find_relatives', methods=['GET'])
 def api_find_relatives():
-    """
-    API 端点：查找同一目录下以及转换目录中所有同基本名的文件，并返回它们的详细信息。
-    """
     relative_path = request.args.get('path')
     if not relative_path:
         return jsonify({"status": "error", "message": "缺少 'path' URL 参数。"}), 400
-
     image_base_dir = get_persisted_image_dir()
     if not image_base_dir:
         return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
-        
     full_path = os.path.join(image_base_dir, relative_path)
     base_name = os.path.splitext(os.path.basename(full_path))[0]
-
     source_directory = os.path.dirname(full_path)
     source_search_pattern = os.path.join(source_directory, base_name + ".*")
-    
     converted_dir_abs = os.path.abspath(CONVERTED_DIR)
     converted_search_pattern = os.path.join(converted_dir_abs, base_name + ".*")
-
     found_files_abs = set(glob.glob(source_search_pattern) + glob.glob(converted_search_pattern))
-
     detailed_files = []
     for f_abs in sorted(list(found_files_abs)):
         try:
-            file_url = ''
-            file_rel_path = ''
-            
-            # 判断文件来源并生成正确的 URL 和相对路径
-            # url_for 会根据已修复的路由，自动生成正确的 /stickers_converted/... 路径
+            file_url, file_rel_path = '', ''
             if f_abs.startswith(converted_dir_abs):
                 file_rel_path = os.path.relpath(f_abs, converted_dir_abs).replace('\\', '/')
                 file_url = url_for('serve_converted_image', filename=file_rel_path)
@@ -226,67 +259,48 @@ def api_find_relatives():
                 file_url = url_for('serve_image', filename=file_rel_path)
             else:
                 continue
-
             file_info = {
-                'path': file_rel_path,
-                'url': file_url,
+                'path': file_rel_path, 'url': file_url,
                 'filename': os.path.basename(f_abs),
                 'format': os.path.splitext(f_abs)[1].lower().replace('.', ''),
-                'size': os.path.getsize(f_abs),
-                'dimensions': [0, 0]
+                'size': os.path.getsize(f_abs), 'dimensions': [0, 0]
             }
-            
-            # 获取尺寸
             try:
                 if f_abs.lower().endswith(('.webm', '.mp4', '.gif')):
                     cap = cv2.VideoCapture(f_abs)
                     if cap.isOpened():
-                        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        file_info['dimensions'] = [width, height]
+                        file_info['dimensions'] = [int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))]
                     cap.release()
                 else:
                     with Image.open(f_abs) as img:
-                        width, height = img.size
-                        file_info['dimensions'] = [width, height]
+                        file_info['dimensions'] = list(img.size)
             except Exception as e_dim:
                 print(f"警告: 无法获取文件尺寸 {f_abs}。错误: {e_dim}")
-            
             detailed_files.append(file_info)
         except Exception as e_meta:
             print(f"警告: 无法获取文件元数据 {f_abs}。错误: {e_meta}")
             continue
-            
     return jsonify({"status": "success", "files": detailed_files})
 
 @app.route('/api/convert', methods=['POST'])
 def api_convert_file():
-    """
-    API 端点：执行文件格式转换，并将结果保存到 'stickers_converted' 目录。
-    """
     data = request.get_json()
     source_path_rel = data.get('source_path')
     target_format = data.get('target_format')
     params = data.get('params', {})
-    
     if not all([source_path_rel, target_format]):
         return jsonify({"status": "error", "message": "缺少 source_path 或 target_format 参数。"}), 400
-
     output_dir_abs = os.path.abspath(CONVERTED_DIR)
     os.makedirs(output_dir_abs, exist_ok=True)
-    
     image_base_dir = get_persisted_image_dir()
     if not image_base_dir:
         return jsonify({"status": "error", "message": "图片根目录未配置。"}), 500
-
     source_path_abs = os.path.join(image_base_dir, source_path_rel)
     if not os.path.exists(source_path_abs):
         return jsonify({"status": "error", "message": f"源文件不存在: {source_path_rel}"}), 404
-
     base_name = os.path.splitext(os.path.basename(source_path_rel))[0]
     new_filename = f"{base_name}.{target_format.lower()}"
     output_path_abs = os.path.join(output_dir_abs, new_filename)
-    
     try:
         source_ext = os.path.splitext(source_path_abs)[1].lower()
         if source_ext == '.webm':
@@ -295,8 +309,6 @@ def api_convert_file():
             convert_webp(source_path_abs, output_path_abs, target_format, params)
         else:
             return jsonify({"status": "error", "message": f"不支持从 {source_ext} 格式转换。"}), 400
-        
-        # 返回新的文件名，供前端使用
         return jsonify({"status": "success", "message": "转换成功！", "output_path": new_filename})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

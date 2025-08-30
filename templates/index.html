@@ -5,110 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>语义素材搜索</title>
     <style>
-        /* --- Material Design 3 Inspired Color Palette & Variables --- */
         :root {
             --md-sys-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            
-            /* Light Theme */
-            --md-sys-primary: #005ac1;
-            --md-sys-on-primary: #ffffff;
-            --md-sys-primary-container: #d8e2ff;
-            --md-sys-on-primary-container: #001a41;
-            --md-sys-surface: #fdfbff;
-            --md-sys-surface-container: #f0f2f5;
-            --md-sys-on-surface: #1b1b1f;
-            --md-sys-on-surface-variant: #44474f;
-            --md-sys-outline: #c4c6d0;
-            --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1);
-            --md-sys-error: #ba1a1a;
-            --md-sys-error-container: #ffdad6;
-            --md-sys-on-error-container: #410002;
-            --md-sys-success: #386a20;
-
-            /* Shape & Animation */
-            --border-radius-large: 28px;
-            --border-radius-medium: 16px;
-            --border-radius-small: 8px;
-            --transition-duration: 0.3s;
-            --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+            --md-sys-primary: #005ac1; --md-sys-on-primary: #ffffff; --md-sys-primary-container: #d8e2ff; --md-sys-on-primary-container: #001a41; --md-sys-surface: #fdfbff; --md-sys-surface-container: #f0f2f5; --md-sys-on-surface: #1b1b1f; --md-sys-on-surface-variant: #44474f; --md-sys-outline: #c4c6d0; --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1); --md-sys-error: #ba1a1a; --md-sys-error-container: #ffdad6; --md-sys-on-error-container: #410002; --md-sys-success: #386a20; --md-sys-success-container: #d9f0c3; --md-sys-on-success-container: #092100;
+            --border-radius-large: 28px; --border-radius-medium: 16px; --border-radius-small: 8px; --transition-duration: 0.3s; --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         @media (prefers-color-scheme: dark) {
             :root {
-                --md-sys-primary: #adc6ff;
-                --md-sys-on-primary: #002e69;
-                --md-sys-primary-container: #004494;
-                --md-sys-on-primary-container: #d8e2ff;
-                --md-sys-surface: #121316;
-                --md-sys-surface-container: #1b1b1f;
-                --md-sys-on-surface: #e3e2e6;
-                --md-sys-on-surface-variant: #c4c6d0;
-                --md-sys-outline: #8e9099;
-                --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.3);
-                --md-sys-error: #ffb4ab;
-                --md-sys-error-container: #93000a;
-                --md-sys-on-error-container: #ffdad6;
-                --md-sys-success: #b5d3a5;
+                --md-sys-primary: #adc6ff; --md-sys-on-primary: #002e69; --md-sys-primary-container: #004494; --md-sys-on-primary-container: #d8e2ff; --md-sys-surface: #121316; --md-sys-surface-container: #1b1b1f; --md-sys-on-surface: #e3e2e6; --md-sys-on-surface-variant: #c4c6d0; --md-sys-outline: #8e9099; --md-sys-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.3); --md-sys-error: #ffb4ab; --md-sys-error-container: #93000a; --md-sys-on-error-container: #ffdad6; --md-sys-success: #b5d3a5; --md-sys-success-container: #205108; --md-sys-on-success-container: #d9f0c3;
             }
         }
-
         *, *::before, *::after { box-sizing: border-box; }
-
-        body {
-            font-family: var(--md-sys-font-family);
-            background-color: var(--md-sys-surface-container);
-            color: var(--md-sys-on-surface);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            transition: background-color var(--transition-duration), color var(--transition-duration);
-        }
-
-        /* --- 核心视图切换样式 --- */
+        body { font-family: var(--md-sys-font-family); background-color: var(--md-sys-surface-container); color: var(--md-sys-on-surface); margin: 0; display: flex; flex-direction: column; min-height: 100vh; transition: background-color var(--transition-duration), color var(--transition-duration); }
         .hidden { display: none !important; }
         .app-view { min-height: 100vh; width: 100%; }
-
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .header {
-            width: 100%;
-            display: flex;
-            justify-content: flex-end;
-            padding: 16px;
-            position: fixed;
-            top: 0;
-            right: 0;
-            z-index: 100;
-        }
-
-        .settings-btn {
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            font-size: 24px;
-            color: var(--md-sys-on-surface-variant);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color var(--transition-duration), transform var(--transition-duration);
-        }
+        .main-container { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 24px; text-align: center; }
+        .header { width: 100%; display: flex; justify-content: flex-end; padding: 16px; position: fixed; top: 0; right: 0; z-index: 100; }
+        .settings-btn { background-color: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 50%; width: 44px; height: 44px; font-size: 24px; color: var(--md-sys-on-surface-variant); display: flex; align-items: center; justify-content: center; transition: background-color var(--transition-duration), transform var(--transition-duration); }
         .settings-btn:hover { background-color: rgba(0,0,0,0.08); transform: rotate(60deg); }
-
         .title { font-size: 3rem; font-weight: 700; color: var(--md-sys-primary); margin-bottom: 2.5rem; }
-
         .search-container { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 900px; margin-bottom: 2.5rem; }
         .search-bar { width: 100%; position: relative; flex-grow: 1; margin-bottom: 0; }
         .search-input { width: 100%; padding: 18px 60px 18px 24px; font-size: 1.1rem; border: 2px solid var(--md-sys-outline); border-radius: var(--border-radius-large); background-color: var(--md-sys-surface); color: var(--md-sys-on-surface); outline: none; transition: border-color var(--transition-duration), box-shadow var(--transition-duration); }
@@ -116,91 +31,62 @@
         .search-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background-color: transparent; color: var(--md-sys-primary); border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; font-weight: bold; transition: background-color var(--transition-duration), transform var(--transition-duration); }
         .search-button:hover { transform: translateY(-50%) scale(1.05); }
         .search-button:active { transform: translateY(-50%) scale(0.95); }
-        
         .options-bar { display: inline-flex; align-items: center; margin-top: 0; background-color: var(--md-sys-surface); padding: 12px 16px; border-radius: var(--border-radius-large); border: 2px solid var(--md-sys-outline); gap: 8px; color: var(--md-sys-on-surface-variant); box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: box-shadow var(--transition-duration), border-color var(--transition-duration); flex-shrink: 0; }
         .options-bar:focus-within { box-shadow: 0 0 0 4px var(--md-sys-primary-container); border-color: var(--md-sys-primary); }
         .options-bar label { font-size: 0.9rem; }
         .options-bar input[type="number"] { width: 50px; border: none; background: transparent; color: var(--md-sys-on-surface); text-align: center; font-size: 1rem; font-weight: 500; padding: 4px; -moz-appearance: textfield; }
         .options-bar input[type="number"]::-webkit-outer-spin-button, .options-bar input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .options-bar input[type="number"]:focus { outline: none; }
-
+        .advanced-search-toggle-btn { background-color: var(--md-sys-surface); color: var(--md-sys-on-surface-variant); border: 2px solid var(--md-sys-outline); border-radius: var(--border-radius-large); padding: 0 24px; font-size: 1rem; cursor: pointer; transition: all var(--transition-duration); height: 60px; flex-shrink: 0; }
+        .advanced-search-toggle-btn:hover { border-color: var(--md-sys-primary); }
+        .advanced-search-toggle-btn.active { background-color: var(--md-sys-primary-container); color: var(--md-sys-on-primary-container); border-color: var(--md-sys-primary); }
+        .advanced-search-panel { width: 100%; max-width: 900px; margin: -2rem auto 1rem; padding: 20px; background-color: var(--md-sys-surface); border-radius: var(--border-radius-large); border: 1px solid var(--md-sys-outline); box-shadow: var(--md-sys-shadow); text-align: left; transition: all var(--transition-duration); }
+        .advanced-search-input-group { display: flex; align-items: center; gap: 16px; }
+        .advanced-search-input-group label { font-weight: 500; flex-shrink: 0; }
+        .advanced-search-input-group input { width: 100%; font-size: 1rem; padding: 12px 16px; border: 1px solid var(--md-sys-outline); border-radius: var(--border-radius-medium); background-color: var(--md-sys-surface-container); color: var(--md-sys-on-surface); }
+        .advanced-search-input-group input:focus { outline: none; border-color: var(--md-sys-primary); box-shadow: 0 0 0 4px var(--md-sys-primary-container); }
+        .search-conditions-display { width: 100%; max-width: 900px; margin: -0.5rem auto 2.5rem; padding: 0 20px; text-align: left; color: var(--md-sys-on-surface-variant); display: flex; align-items: center; flex-wrap: wrap; }
+        .search-conditions-display .prefix { font-weight: 500; margin-right: 8px; margin-bottom: 8px; }
+        .keyword-tag { display: inline-block; background-color: var(--md-sys-primary-container); color: var(--md-sys-on-primary-container); padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; margin-right: 8px; margin-bottom: 8px; cursor: pointer; transition: all var(--transition-duration) var(--transition-easing); }
+        .keyword-tag:hover { background-color: var(--md-sys-error-container); color: var(--md-sys-on-error-container); text-decoration: line-through; transform: translateY(-2px); }
+        #similarity-condition-display .keyword-tag { background-color: var(--md-sys-success-container); color: var(--md-sys-on-success-container); }
+        #similarity-condition-display .keyword-tag:hover { background-color: var(--md-sys-error-container); }
         .results-container { width: 90%; max-width: 1400px; margin: 80px auto 20px; padding: 0 24px; }
         .search-results { column-count: 5; column-gap: 16px; }
-        .result-item { margin: 0 0 16px; background-color: var(--md-sys-surface); border-radius: var(--border-radius-medium); overflow: hidden; box-shadow: var(--md-sys-shadow); transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing); position: relative; break-inside: avoid; margin-bottom: 16px; cursor: pointer; }
+        .result-item { margin: 0 0 16px; background-color: var(--md-sys-surface); border-radius: var(--border-radius-medium); overflow: hidden; box-shadow: var(--md-sys-shadow); transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing); position: relative; break-inside: avoid; margin-bottom: 16px; }
+        .result-item-clickable { cursor: pointer; }
         .result-item:hover { transform: translateY(-6px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1); }
         .result-item img, .result-item video { width: 100%; height: auto; display: block; background-color: var(--md-sys-surface-container); }
-        .result-item figcaption { position: absolute; bottom: 0; left: 0; width: 100%; padding: 16px 16px; font-size: 0.9em; text-align: center; color: #ffffff; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity var(--transition-duration) var(--transition-easing), transform var(--transition-duration) var(--transition-easing), visibility var(--transition-duration); }
-        .result-item:hover figcaption { opacity: 1; visibility: visible; transform: translateY(0); }
-        .status-message { margin-top: 2rem; font-size: 1.1rem; color: var(--md-sys-on-surface-variant); }
-
-        /* --- 详情页 & 转换页 样式 --- */
+        .result-item-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px; color: #ffffff; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); opacity: 0; visibility: hidden; transform: translateY(10px); transition: all var(--transition-duration) var(--transition-easing); font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px; }
+        .result-item:hover .result-item-overlay { opacity: 1; visibility: visible; transform: translateY(0); }
+        .overlay-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .overlay-btn { background-color: rgba(255, 255, 255, 0.9); color: #000; border: none; border-radius: var(--border-radius-small); padding: 6px 12px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background-color var(--transition-duration); flex-shrink: 0; }
+        .overlay-btn:hover { background-color: #fff; }
+        .copy-menu-container { display: flex; align-items: center; gap: 6px; background-color: rgba(0, 0, 0, 0.3); padding: 4px 8px; border-radius: var(--border-radius-small); overflow: hidden; flex-wrap: wrap; }
+        .copy-format-link { color: #fff; text-decoration: none; font-weight: 500; padding: 2px 4px; border-radius: 4px; }
+        .copy-format-link:hover { background-color: rgba(255, 255, 255, 0.2); }
+        .score-display { text-align: right; width: 100%; font-size: 0.8rem; opacity: 0.8; }
         .detail-container, .convert-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
         .content-wrapper { display: flex; flex-direction: row; align-items: center; gap: 48px; width: 100%; max-width: 900px; padding: 24px; }
         .preview-pane { flex-shrink: 0; width: 40%; display: flex; align-items: center; justify-content: center; }
         .preview-pane img, .preview-pane video { max-width: 100%; max-height: 40vh; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); border-radius: var(--border-radius-small); }
-        
-        .info-pane {
-            flex-grow: 1;
-            font-size: 1.1rem;
-            color: var(--md-sys-on-surface-variant);
-            width: 60%;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* Default align left */
-        }
+        .info-pane { flex-grow: 1; font-size: 1.1rem; color: var(--md-sys-on-surface-variant); width: 60%; display: flex; flex-direction: column; align-items: flex-start; }
         .info-pane h2 { color: var(--md-sys-on-surface); margin-top: 0; width: 100%; }
         .info-pane ul { list-style: none; padding: 0; margin: 0 0 32px 0; width: 100%;}
         .info-pane li { margin-bottom: 16px; display: flex; }
         .info-pane strong { color: var(--md-sys-on-surface); font-weight: 500; display: inline-block; width: 100px; flex-shrink: 0;}
-        
-        /* 按钮与表单 */
         .action-group { position: relative; width: 100%; text-align: center; }
         .action-button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; border-radius: var(--border-radius-large); padding: 16px 32px; font-size: 1.1rem; font-weight: 500; cursor: pointer; transition: all var(--transition-duration); width: 100%; }
         .action-button:hover { opacity: 0.9; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .action-button:disabled { background-color: var(--md-sys-outline); cursor: not-allowed; }
         .secondary-button { background-color: var(--md-sys-surface); color: var(--md-sys-on-surface-variant); border: 1px solid var(--md-sys-outline); }
         .secondary-button:hover { background-color: var(--md-sys-primary-container); border-color: var(--md-sys-primary); }
-        
-        .detail-actions-container {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            width: 100%;
-            max-width: 250px;
-        }
-        .custom-convert-link {
-            font-size: 0.9rem;
-            color: var(--md-sys-on-surface-variant);
-            cursor: pointer;
-            text-decoration: underline;
-            margin-top: -8px;
-            display: block;
-            text-align: center;
-        }
-        /* --- 关联文件展示样式 --- */
-        #detail-relatives-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-            width: 100%;
-        }
-        .relative-item {
-            text-align: center;
-        }
-        .relative-item img, .relative-item video {
-            max-width: 100%;
-            max-height: 250px; /* 限制最大高度避免列表过长 */
-            object-fit: contain;
-            border-radius: var(--border-radius-small);
-            margin-bottom: 8px;
-            background-color: var(--md-sys-surface);
-        }
-        .relative-item-info {
-            font-size: 0.9rem;
-            color: var(--md-sys-on-surface-variant);
-        }
-
+        .detail-actions-container { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 250px; }
+        .custom-convert-link { font-size: 0.9rem; color: var(--md-sys-on-surface-variant); cursor: pointer; text-decoration: underline; margin-top: -8px; display: block; text-align: center; }
+        #detail-relatives-container { display: flex; flex-direction: column; align-items: center; gap: 24px; width: 100%; }
+        .relative-item { text-align: center; }
+        .relative-item img, .relative-item video { max-width: 100%; max-height: 250px; object-fit: contain; border-radius: var(--border-radius-small); margin-bottom: 8px; background-color: var(--md-sys-surface); }
+        .relative-item-info { font-size: 0.9rem; color: var(--md-sys-on-surface-variant); }
         .form-group { margin-bottom: 1.2rem; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--md-sys-on-surface); }
         .form-group select, .form-group input[type="text"], .form-group input[type="number"] { width: 100%; padding: 12px; border-radius: var(--border-radius-small); border: 1px solid var(--md-sys-outline); background-color: var(--md-sys-surface-container); color: var(--md-sys-on-surface); font-size: 1rem; }
@@ -210,61 +96,21 @@
         .form-group .range-group input[type="range"] { flex-grow: 1; }
         .form-group .range-group input[type="number"] { width: 70px; }
         .form-group:has(input:disabled) { opacity: 0.5; }
-
-        input[type="range"] { width: 100%; height: 8px; background: var(--md-sys-surface-container); border-radius: 4px; outline: none; opacity: 0.8; transition: opacity .2s; }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: var(--md-sys-surface-container); border-radius: 4px; outline: none; opacity: 0.8; transition: opacity .2s; }
         input[type="range"]:hover { opacity: 1; }
-        input[type="range"]::-webkit-slider-thumb { width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--md-sys-primary); cursor: pointer; border-radius: 50%; border: 2px solid var(--md-sys-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-
         .convert-status { margin-top: 1.5rem; padding: 1rem; border-radius: var(--border-radius-small); word-break: break-word; }
         .convert-status.success { background-color: var(--md-sys-primary-container); color: var(--md-sys-on-primary-container); }
         .convert-status.success span { text-decoration: underline; cursor: pointer; font-weight: bold; }
         .convert-status.error { background-color: var(--md-sys-error-container); color: var(--md-sys-on-error-container); white-space: pre-wrap; }
-        
-        /* --- Popover 样式 --- */
-        .popover {
-            position: absolute;
-            bottom: 110%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--md-sys-surface);
-            border: 1px solid var(--md-sys-outline);
-            border-radius: var(--border-radius-medium);
-            box-shadow: var(--md-sys-shadow);
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s var(--transition-easing);
-            min-width: 200px;
-            transform-origin: bottom center;
-        }
-        .popover.is-visible {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(-10px);
-        }
-        .popover ul {
-            list-style: none;
-            margin: 0;
-            padding: 8px;
-        }
-        .popover li {
-            padding: 8px 12px;
-            margin: 0;
-            cursor: pointer;
-            border-radius: var(--border-radius-small);
-            font-size: 0.9rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .popover li:hover {
-            background-color: var(--md-sys-surface-container);
-        }
-        
+        .popover { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background-color: var(--md-sys-surface); border: 1px solid var(--md-sys-outline); border-radius: var(--border-radius-medium); box-shadow: var(--md-sys-shadow); z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.2s var(--transition-easing); min-width: 200px; transform-origin: bottom center; }
+        .popover.is-visible { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-10px); }
+        .popover ul { list-style: none; margin: 0; padding: 8px; }
+        .popover li { padding: 8px 12px; margin: 0; cursor: pointer; border-radius: var(--border-radius-small); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .popover li:hover { background-color: var(--md-sys-surface-container); }
         #copy-toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background-color: rgba(20, 20, 20, 0.85); color: white; padding: 12px 24px; border-radius: var(--border-radius-large); z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s, transform 0.3s; }
         #copy-toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-10px); }
-
         .modal { display: flex; align-items: center; justify-content: center; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: opacity var(--transition-duration), visibility var(--transition-duration); }
         .modal.is-open { opacity: 1; visibility: visible; }
         .modal-content { background-color: var(--md-sys-surface); padding: 32px; border-radius: var(--border-radius-large); width: 90%; max-width: 550px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform var(--transition-duration) var(--transition-easing); }
@@ -275,29 +121,11 @@
         .modal-content input[type="text"], .modal-content button { width: 100%; padding: 12px 16px; font-size: 1rem; border-radius: var(--border-radius-small); border: 1px solid var(--md-sys-outline); }
         .modal-content button { background-color: var(--md-sys-primary); color: var(--md-sys-on-primary); border: none; cursor: pointer; margin-top: 1rem; transition: background-color var(--transition-duration); }
         .modal-content button:hover { opacity: 0.9; }
-        
         @media (max-width: 1200px) { .search-results { column-count: 4; } }
         @media (max-width: 992px) { .search-results { column-count: 3; } }
-        @media (max-width: 768px) {
-            .search-container { flex-direction: column; gap: 12px; }
-            .search-results { column-count: 2; }
-            .content-wrapper { flex-direction: column; text-align: center; gap: 24px; }
-            .preview-pane { width: 100%; max-width: 300px; }
-            .info-pane {
-                width: 100%;
-                align-items: center; /* Center content on mobile */
-            }
-            .info-pane li { justify-content: center; }
-        }
-        @media (max-width: 600px) {
-            .title { font-size: 2.2rem; }
-            .search-input { padding: 16px 55px 16px 20px; }
-            .search-results { column-count: 2; gap: 16px; }
-            .result-item { margin-bottom: 16px; }
-            .modal-content { padding: 24px; }
-        }
+        @media (max-width: 768px) { .search-container { flex-direction: row; flex-wrap: wrap; justify-content: center; } .search-bar { width: 100%; margin-bottom: 12px; } .advanced-search-toggle-btn, .options-bar { height: 50px; padding: 0 16px; } .advanced-search-panel { margin-top: 1rem; } .content-wrapper { flex-direction: column; text-align: center; gap: 24px; } .preview-pane { width: 100%; max-width: 300px; } .info-pane { width: 100%; align-items: center; } .info-pane li { justify-content: center; } }
+        @media (max-width: 600px) { .title { font-size: 2.2rem; } .search-input { padding: 16px 55px 16px 20px; } .search-results { column-count: 2; gap: 16px; } .result-item { margin-bottom: 16px; } .modal-content { padding: 24px; } }
         @media (max-width: 480px) { .search-results { column-count: 1; } }
-
     </style>
 </head>
 <body>
@@ -306,32 +134,41 @@
         <button class="settings-btn" id="open-settings-modal" title="索引设置">⚙️</button>
     </header>
 
-    <!-- Main/Search View -->
     <main id="view-main" class="app-view main-container">
         <h1 class="title">表情贴纸语义搜索</h1>
         <div class="search-container">
             <form id="search-form" class="search-bar">
-                <input type="text" id="query" class="search-input" placeholder="输入中文描述，例如: 夕阳下的海滩" required>
+                <input type="text" id="query" class="search-input" placeholder="输入中文描述，或添加一个相似图片" required>
                 <button type="submit" class="search-button" title="搜索">🔍</button>
             </form>
+            <button id="toggle-advanced-search-btn" class="advanced-search-toggle-btn" title="高级搜索">高级搜索</button>
             <div class="options-bar">
                 <label for="top_k">给我来</label>
                 <input type="number" id="top_k" value="50" min="1" max="100">
                 <label for="top_k">张!</label>
             </div>
         </div>
+        
+        <div id="advanced-search-panel" class="advanced-search-panel hidden">
+            <div class="advanced-search-input-group">
+                <label for="negative_query_input">排除关键词:</label>
+                <input type="text" id="negative_query_input" placeholder="输入后按回车键添加...">
+            </div>
+        </div>
+        
+        <div id="negative-keywords-display" class="search-conditions-display hidden"></div>
+        <div id="similarity-condition-display" class="search-conditions-display hidden"></div>
+
         <div class="status-message" id="status-message"></div>
         <div class="results-container">
             <div class="search-results" id="search-results"></div>
         </div>
     </main>
 
-    <!-- Detail View -->
     <div id="view-detail" class="app-view detail-container hidden">
         <div class="content-wrapper">
             <div class="preview-pane">
                 <div id="detail-media-container"></div>
-                <!-- 新增：用于显示关联文件的容器 -->
                 <div id="detail-relatives-container" class="hidden"></div>
             </div>
             <div class="info-pane">
@@ -346,9 +183,7 @@
                         <button class="action-button" id="copy-image-btn">拷贝图像</button>
                         <div class="popover" id="copy-popover"></div>
                     </div>
-                    <!-- 新增：切换所有图像的链接 -->
                     <a class="custom-convert-link" id="toggle-relatives-link" style="margin-top: 0;">查看所有图像 ></a>
-                    
                     <div class="action-group" id="detail-convert-group" style="margin-top: 8px;">
                         <button class="action-button secondary-button" id="convert-gif-btn">转为 GIF</button>
                         <div class="popover" id="convert-popover"></div>
@@ -360,7 +195,6 @@
         </div>
     </div>
     
-    <!-- WebP Convert View -->
     <div id="view-convert-webp" class="app-view convert-container hidden">
         <div class="content-wrapper">
             <div class="preview-pane" id="webp-convert-preview"></div>
@@ -392,7 +226,6 @@
         </div>
     </div>
 
-    <!-- WebM Convert View -->
     <div id="view-convert-webm" class="app-view convert-container hidden">
          <div class="content-wrapper">
             <div class="preview-pane" id="webm-convert-preview"></div>
@@ -429,7 +262,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="close-settings-modal">&times;</span>
@@ -445,7 +277,6 @@
         </div>
     </div>
 
-    <!-- Copy Toast Notification -->
     <div id="copy-toast"></div>
 
 <script>
@@ -454,6 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDetailItem = null;
     let popoverHideTimer = null;
     const isLocalAccess = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    let negativeKeywords = [];
+    let similarityCondition = null; // Will store { path: '...', filename: '...' }
 
     // --- Element Caching ---
     const views = {
@@ -463,14 +296,18 @@ document.addEventListener('DOMContentLoaded', () => {
         convertWebm: document.getElementById('view-convert-webm'),
     };
     const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('query');
     const searchResults = document.getElementById('search-results');
     const statusMessage = document.getElementById('status-message');
     const copyToast = document.getElementById('copy-toast');
-    
-    // Detail View Elements
+    const toggleAdvancedBtn = document.getElementById('toggle-advanced-search-btn');
+    const advancedPanel = document.getElementById('advanced-search-panel');
+    const negativeQueryInput = document.getElementById('negative_query_input');
+    const keywordsDisplayContainer = document.getElementById('negative-keywords-display');
+    const similarityContainer = document.getElementById('similarity-condition-display');
     const detailMediaContainer = document.getElementById('detail-media-container');
-    const detailRelativesContainer = document.getElementById('detail-relatives-container'); 
-    const toggleRelativesLink = document.getElementById('toggle-relatives-link'); 
+    const detailRelativesContainer = document.getElementById('detail-relatives-container');
+    const toggleRelativesLink = document.getElementById('toggle-relatives-link');
     const copyImageBtn = document.getElementById('copy-image-btn');
     const copyPopover = document.getElementById('copy-popover');
     const detailCopyGroup = document.getElementById('detail-copy-group');
@@ -478,24 +315,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const convertPopover = document.getElementById('convert-popover');
     const detailConvertGroup = document.getElementById('detail-convert-group');
     const customConvertLink = document.getElementById('custom-convert-link');
-
-    // WebP Convert View Elements
     const webpConvertForm = document.getElementById('webp-convert-form');
     const webpConvertStatus = document.getElementById('webp-convert-status');
-
-    // WebM Convert View Elements
     const webmConvertForm = document.getElementById('webm-convert-form');
     const webmConvertStatus = document.getElementById('webm-convert-status');
 
-    // --- View Management ---
+    // --- View Management & Rendering ---
     function showView(viewName, data = null) {
         Object.values(views).forEach(v => v.classList.add('hidden'));
         if (views[viewName]) {
             views[viewName].classList.remove('hidden');
-            document.body.scrollTop = 0; // For Safari
-            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
         }
-        
         if (viewName === 'detail' && data) {
             currentDetailItem = data;
             populateDetailView(data);
@@ -505,46 +337,121 @@ document.addEventListener('DOMContentLoaded', () => {
             populateWebmConvertView(data);
         }
     }
+
+    function renderResults(results) {
+        searchResults.innerHTML = '';
+        if (results.length === 0) {
+            statusMessage.textContent = '未找到匹配的图片。';
+            return;
+        }
+        
+        results.forEach(item => {
+            const resultElement = document.createElement('figure');
+            resultElement.className = 'result-item';
+            resultElement.dataset.itemData = JSON.stringify(item);
+
+            const mediaWrapper = document.createElement('div');
+            mediaWrapper.className = 'result-item-clickable';
+            mediaWrapper.appendChild(createMediaElement(item));
+
+            let copyLinks = '';
+            if (isLocalAccess && item.available_formats) {
+                copyLinks = item.available_formats.map(fmt => 
+                    `<a href="#" class="copy-format-link" data-path="${fmt.path}" data-location="${fmt.location}">${fmt.format.toUpperCase()}</a>`
+                ).join('');
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'result-item-overlay';
+            overlay.innerHTML = `
+                <div class="overlay-actions">
+                    <button class="overlay-btn find-similar-btn" data-path="${item.path}">查找相似</button>
+                    <button class="overlay-btn add-to-condition-btn" data-path="${item.path}" data-filename="${item.filename}">添加到搜索条件</button>
+                    ${copyLinks ? `<div class="copy-menu-container"><span>复制:</span>${copyLinks}</div>` : ''}
+                </div>
+                <div class="score-display">匹配度: ${item.score.toFixed(4)}</div>`;
+            
+            resultElement.appendChild(mediaWrapper);
+            resultElement.appendChild(overlay);
+            searchResults.appendChild(resultElement);
+        });
+    }
     
+    function renderNegativeKeywords() {
+        keywordsDisplayContainer.innerHTML = '';
+        if (negativeKeywords.length > 0) {
+            keywordsDisplayContainer.classList.remove('hidden');
+            const prefix = document.createElement('span');
+            prefix.className = 'prefix';
+            prefix.textContent = '已排除:';
+            keywordsDisplayContainer.appendChild(prefix);
+            negativeKeywords.forEach(keyword => {
+                const tag = document.createElement('span');
+                tag.className = 'keyword-tag';
+                tag.textContent = keyword;
+                tag.title = '点击移除';
+                tag.addEventListener('click', () => {
+                    negativeKeywords = negativeKeywords.filter(k => k !== keyword);
+                    renderNegativeKeywords();
+                });
+                keywordsDisplayContainer.appendChild(tag);
+            });
+        } else {
+            keywordsDisplayContainer.classList.add('hidden');
+        }
+    }
+
+    function renderSimilarityCondition() {
+        similarityContainer.innerHTML = '';
+        if (similarityCondition) {
+            similarityContainer.classList.remove('hidden');
+            const prefix = document.createElement('span');
+            prefix.className = 'prefix';
+            prefix.textContent = '相似于:';
+            similarityContainer.appendChild(prefix);
+            const tag = document.createElement('span');
+            tag.className = 'keyword-tag';
+            tag.textContent = similarityCondition.filename;
+            tag.title = '点击移除';
+            tag.addEventListener('click', () => {
+                similarityCondition = null;
+                renderSimilarityCondition();
+            });
+            similarityContainer.appendChild(tag);
+        } else {
+            similarityContainer.classList.add('hidden');
+        }
+    }
+
     async function populateDetailView(item) {
-        // Reset view state
         detailMediaContainer.classList.remove('hidden');
         detailRelativesContainer.classList.add('hidden');
         detailRelativesContainer.innerHTML = '';
         copyPopover.innerHTML = '';
         convertPopover.innerHTML = '';
-
         detailMediaContainer.innerHTML = createMediaElement(item).outerHTML;
         document.getElementById('detail-filename').textContent = item.filename;
         document.getElementById('detail-size').textContent = formatBytes(item.size);
         document.getElementById('detail-dimensions').textContent = item.dimensions ? item.dimensions.join(' x ') : 'N/A';
         document.getElementById('detail-date').textContent = new Date(item.date).toLocaleDateString();
 
-        // --- NEW: Dynamic button logic based on access type ---
-        // First, remove any existing listeners to prevent them from stacking up
         copyImageBtn.removeEventListener('click', handleCopyClick);
         copyImageBtn.removeEventListener('click', handleToggleRelatives);
         toggleRelativesLink.removeEventListener('click', handleToggleRelatives);
 
         if (isLocalAccess) {
-            // On local access, show the "Copy" button and the helper link
             copyImageBtn.textContent = '拷贝图像';
             copyImageBtn.addEventListener('click', handleCopyClick);
-            
             toggleRelativesLink.innerHTML = '查看所有图像 >';
             toggleRelativesLink.addEventListener('click', handleToggleRelatives);
-
             detailCopyGroup.classList.remove('hidden');
             toggleRelativesLink.classList.remove('hidden');
         } else {
-            // On remote access, replace the "Copy" button's function with "View All"
             copyImageBtn.textContent = '查看所有图像';
             copyImageBtn.addEventListener('click', handleToggleRelatives);
-            
-            detailCopyGroup.classList.remove('hidden'); // The main button is now our toggle
-            toggleRelativesLink.classList.add('hidden'); // Hide the helper link as it's redundant
+            detailCopyGroup.classList.remove('hidden');
+            toggleRelativesLink.classList.add('hidden');
         }
-        // --- END of new logic ---
 
         if (item.type === '.webp' || item.type === '.webm') {
             detailConvertGroup.classList.remove('hidden');
@@ -553,13 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
             detailConvertGroup.classList.add('hidden');
             customConvertLink.classList.add('hidden');
         }
-
-        // Pass the access flag to updatePopovers
         await updatePopovers(item, isLocalAccess);
     }
-    
+
     async function updatePopovers(item, isLocal = true) {
-        // Only populate the copy-related popover on local access
         if (isLocal) {
             try {
                 const response = await fetch(`/api/find_relatives?path=${encodeURIComponent(item.path)}`);
@@ -583,7 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Failed to prepare copy popover:", err);
             }
         }
-
         if (item.type === '.webp') {
             const list = document.createElement('ul');
             ['png', 'jpeg'].forEach(format => {
@@ -598,7 +501,6 @@ document.addEventListener('DOMContentLoaded', () => {
             convertPopover.appendChild(list);
         }
     }
-
 
     function populateWebpConvertView(item) {
         document.getElementById('webp-convert-preview').innerHTML = createMediaElement(item).outerHTML;
@@ -615,140 +517,107 @@ document.addEventListener('DOMContentLoaded', () => {
         webmConvertStatus.classList.add('hidden');
     }
 
-    // --- Event Handlers & Named Functions ---
+    // --- Event Handlers ---
     searchForm.addEventListener('submit', handleSearch);
+
     searchResults.addEventListener('click', (e) => {
-        const itemElement = e.target.closest('.result-item');
-        if (itemElement && itemElement.dataset.itemData) {
-            showView('detail', JSON.parse(itemElement.dataset.itemData));
+        const findSimilarBtn = e.target.closest('.find-similar-btn');
+        const addToConditionBtn = e.target.closest('.add-to-condition-btn');
+        const copyLink = e.target.closest('.copy-format-link');
+        const clickableArea = e.target.closest('.result-item-clickable');
+
+        if (findSimilarBtn) { e.preventDefault(); handleFindSimilar(findSimilarBtn.dataset.path); }
+        else if (addToConditionBtn) { e.preventDefault(); similarityCondition = { path: addToConditionBtn.dataset.path, filename: addToConditionBtn.dataset.filename }; renderSimilarityCondition(); showToast(`已添加相似条件: ${similarityCondition.filename}`); }
+        else if (copyLink) { e.preventDefault(); copyFile(copyLink.dataset.path, null, copyLink.dataset.location); }
+        else if (clickableArea) { const itemElement = clickableArea.closest('.result-item'); if (itemElement && itemElement.dataset.itemData) { showView('detail', JSON.parse(itemElement.dataset.itemData)); } }
+    });
+
+    toggleAdvancedBtn.addEventListener('click', () => {
+        advancedPanel.classList.toggle('hidden');
+        toggleAdvancedBtn.classList.toggle('active');
+    });
+    
+    negativeQueryInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const keyword = negativeQueryInput.value.trim();
+            if (keyword && !negativeKeywords.includes(keyword)) {
+                negativeKeywords.push(keyword);
+                renderNegativeKeywords();
+            }
+            negativeQueryInput.value = '';
         }
     });
 
-    // Back Buttons
     document.getElementById('back-to-results-btn').addEventListener('click', () => showView('main'));
     document.getElementById('back-from-webp-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
     document.getElementById('back-from-webm-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
 
-    // Detail View Actions
-    function handleCopyClick() {
-        const preferredFormat = (currentDetailItem.type === '.webp' || currentDetailItem.type === '.webm') ? '.gif' : null;
-        copyFile(currentDetailItem.path, preferredFormat);
-    }
-    
-    convertGifBtn.addEventListener('click', () => {
-        if (!currentDetailItem) return;
-        const defaultParams = { scale: 1.0, algorithm: 'lanczos' };
-        convertFile(currentDetailItem.path, 'gif', defaultParams, true);
-    });
-    
-    customConvertLink.addEventListener('click', () => {
-        if (!currentDetailItem) return;
-        if (currentDetailItem.type === '.webp') {
-            showView('convertWebp', currentDetailItem);
-        } else if (currentDetailItem.type === '.webm') {
-            showView('convertWebm', currentDetailItem);
-        }
-    });
-
-    // Popover Interaction
-    detailCopyGroup.addEventListener('mouseenter', () => {
-        if (isLocalAccess && copyPopover.innerHTML.trim() !== '') {
-            clearTimeout(popoverHideTimer);
-            copyPopover.classList.add('is-visible');
-        }
-    });
-
-    detailCopyGroup.addEventListener('mouseleave', () => {
-        popoverHideTimer = setTimeout(() => {
-            copyPopover.classList.remove('is-visible');
-        }, 300);
-    });
-
-    detailConvertGroup.addEventListener('mouseenter', () => {
-        if (convertPopover.innerHTML.trim() !== '') {
-            clearTimeout(popoverHideTimer);
-            convertPopover.classList.add('is-visible');
-        }
-    });
-
-    detailConvertGroup.addEventListener('mouseleave', () => {
-        popoverHideTimer = setTimeout(() => {
-            convertPopover.classList.remove('is-visible');
-        }, 300);
-    });
-
-    // Convert Forms
-    webpConvertForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const targetFormat = document.getElementById('webp-target-format').value;
-        const scale = document.getElementById('webp-scale-input').value;
-        convertFile(currentDetailItem.path, targetFormat, { scale }, false, 'webp');
-    });
-
-    webmConvertForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const params = {
-            scale: document.getElementById('webm-scale-input').value,
-            algorithm: document.getElementById('webm-algorithm').value,
-        };
-        convertFile(currentDetailItem.path, 'gif', params, false, 'webm');
-    });
-    
+    function handleCopyClick() { const preferredFormat = (currentDetailItem.type === '.webp' || currentDetailItem.type === '.webm') ? '.gif' : null; copyFile(currentDetailItem.path, preferredFormat); }
+    convertGifBtn.addEventListener('click', () => { if (!currentDetailItem) return; const defaultParams = { scale: 1.0, algorithm: 'lanczos' }; convertFile(currentDetailItem.path, 'gif', defaultParams, true); });
+    customConvertLink.addEventListener('click', () => { if (!currentDetailItem) return; if (currentDetailItem.type === '.webp') { showView('convertWebp', currentDetailItem); } else if (currentDetailItem.type === '.webm') { showView('convertWebm', currentDetailItem); } });
+    detailCopyGroup.addEventListener('mouseenter', () => { if (isLocalAccess && copyPopover.innerHTML.trim() !== '') { clearTimeout(popoverHideTimer); copyPopover.classList.add('is-visible'); } });
+    detailCopyGroup.addEventListener('mouseleave', () => { popoverHideTimer = setTimeout(() => copyPopover.classList.remove('is-visible'), 300); });
+    detailConvertGroup.addEventListener('mouseenter', () => { if (convertPopover.innerHTML.trim() !== '') { clearTimeout(popoverHideTimer); convertPopover.classList.add('is-visible'); } });
+    detailConvertGroup.addEventListener('mouseleave', () => { popoverHideTimer = setTimeout(() => convertPopover.classList.remove('is-visible'), 300); });
+    webpConvertForm.addEventListener('submit', e => { e.preventDefault(); const targetFormat = document.getElementById('webp-target-format').value; const scale = document.getElementById('webp-scale-input').value; convertFile(currentDetailItem.path, targetFormat, { scale }, false, 'webp'); });
+    webmConvertForm.addEventListener('submit', e => { e.preventDefault(); const params = { scale: document.getElementById('webm-scale-input').value, algorithm: document.getElementById('webm-algorithm').value }; convertFile(currentDetailItem.path, 'gif', params, false, 'webm'); });
     setupSliderSync('webp-scale-slider', 'webp-scale-input', 'webp-scale-display');
     setupSliderSync('webm-scale-slider', 'webm-scale-input', 'webm-scale-display');
 
     // --- API Calls & Logic ---
     async function handleSearch(e) {
-        e.preventDefault();
-        const query = document.getElementById('query').value;
+        if(e) e.preventDefault();
+        const query = searchInput.value;
+        const negativeQueryString = negativeKeywords.join(',');
         const topK = document.getElementById('top_k').value;
-        if (!query) { alert('请输入搜索描述!'); return; }
-        
+        if (!query.trim() && !similarityCondition) { alert('请输入搜索描述或添加一个相似图片!'); return; }
         statusMessage.textContent = '正在搜索中...';
         searchResults.innerHTML = '';
-        e.target.querySelector('button').disabled = true;
-
+        searchForm.querySelector('button').disabled = true;
         try {
-            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}&top_k=${topK}`);
+            let apiUrl = `/api/search?query=${encodeURIComponent(query)}&top_k=${topK}`;
+            if (negativeQueryString) apiUrl += `&negative_query=${encodeURIComponent(negativeQueryString)}`;
+            if (similarityCondition) apiUrl += `&similar_image_path=${encodeURIComponent(similarityCondition.path)}`;
+            const response = await fetch(apiUrl);
             const data = await response.json();
-            
-            if (data.status === 'success') {
-                statusMessage.textContent = '';
-                if (data.results.length === 0) {
-                    statusMessage.textContent = '未找到匹配的图片。';
-                } else {
-                    data.results.forEach(item => {
-                        const resultElement = document.createElement('figure');
-                        resultElement.className = 'result-item';
-                        resultElement.dataset.itemData = JSON.stringify(item);
-                        resultElement.innerHTML = `
-                            ${createMediaElement(item).outerHTML}
-                            <figcaption>匹配度: ${item.score.toFixed(4)}</figcaption>`;
-                        searchResults.appendChild(resultElement);
-                    });
-                }
-            } else {
-                statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>搜索失败:</strong> ${data.message}</span>`;
-            }
+            if (data.status === 'success') { statusMessage.textContent = ''; renderResults(data.results); }
+            else { statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>搜索失败:</strong> ${data.message}</span>`; }
         } catch (error) {
             statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</span>`;
         } finally {
-            e.target.querySelector('button').disabled = false;
+            searchForm.querySelector('button').disabled = false;
+        }
+    }
+    
+    async function handleFindSimilar(path) {
+        const topK = document.getElementById('top_k').value;
+        const negativeQueryString = negativeKeywords.join(',');
+        if (!path) return;
+        statusMessage.textContent = `正在查找与 ${path.split('/').pop()} 相似的图片...`;
+        searchResults.innerHTML = '';
+        searchInput.value = `[相似于: ${path.split('/').pop()}]`;
+        try {
+            let apiUrl = `/api/search_by_image?path=${encodeURIComponent(path)}&top_k=${topK}`;
+            if (negativeQueryString) apiUrl += `&negative_query=${encodeURIComponent(negativeQueryString)}`;
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            if (data.status === 'success') { statusMessage.textContent = ''; renderResults(data.results); }
+            else { statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>查找相似失败:</strong> ${data.message}</span>`; }
+        } catch (error) {
+            statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</span>`;
         }
     }
 
     async function handleToggleRelatives() {
         if (!currentDetailItem) return;
-
         const isHidden = detailRelativesContainer.classList.contains('hidden');
         const buttonToUpdate = isLocalAccess ? toggleRelativesLink : copyImageBtn;
-
-        if (isHidden) { // If showing relatives
+        if (isHidden) {
             buttonToUpdate.textContent = '加载中...';
             try {
                 const response = await fetch(`/api/find_relatives?path=${encodeURIComponent(currentDetailItem.path)}`);
                 const data = await response.json();
-
                 if (data.status === 'success') {
                     detailRelativesContainer.innerHTML = '';
                     data.files.forEach(file => {
@@ -761,7 +630,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         itemContainer.appendChild(info);
                         detailRelativesContainer.appendChild(itemContainer);
                     });
-
                     detailMediaContainer.classList.add('hidden');
                     detailRelativesContainer.classList.remove('hidden');
                     if (isLocalAccess) buttonToUpdate.innerHTML = '隐藏所有图像 >';
@@ -776,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isLocalAccess) buttonToUpdate.innerHTML = '查看所有图像 >';
                 else buttonToUpdate.textContent = '查看所有图像';
             }
-        } else { // If hiding relatives
+        } else {
             detailRelativesContainer.classList.add('hidden');
             detailMediaContainer.classList.remove('hidden');
             if (isLocalAccess) buttonToUpdate.innerHTML = '查看所有图像 >';
@@ -787,9 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function copyFile(path, preferredFormat = null, location = 'index') {
         showToast('正在拷贝...');
         const body = { path, location };
-        if (preferredFormat) {
-            body.preferred_format = preferredFormat;
-        }
+        if (preferredFormat) { body.preferred_format = preferredFormat; }
         try {
             const response = await fetch('/api/copy', {
                 method: 'POST',
@@ -805,155 +671,54 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function convertFile(source_path, target_format, params, shouldCopy = false, viewType = null) {
         let statusElem, submitBtn;
-        if(viewType === 'webp') {
-            statusElem = webpConvertStatus;
-            submitBtn = webpConvertForm.querySelector('button[type="submit"]');
-        } else if (viewType === 'webm') {
-            statusElem = webmConvertStatus;
-            submitBtn = webmConvertForm.querySelector('button[type="submit"]');
-        }
-
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = '转换中...';
-        } else {
-            showToast('正在转换...');
-        }
-        
-        if (statusElem) {
-            statusElem.classList.add('hidden');
-        }
-
+        if(viewType === 'webp') { statusElem = webpConvertStatus; submitBtn = webpConvertForm.querySelector('button[type="submit"]'); }
+        else if (viewType === 'webm') { statusElem = webmConvertStatus; submitBtn = webmConvertForm.querySelector('button[type="submit"]'); }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '转换中...'; }
+        else { showToast('正在转换...'); }
+        if (statusElem) { statusElem.classList.add('hidden'); }
         try {
-            const response = await fetch('/api/convert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ source_path, target_format, params })
-            });
+            const response = await fetch('/api/convert', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source_path, target_format, params }) });
             const data = await response.json();
-
             if (response.ok) {
-                if(shouldCopy) {
-                    copyFile(data.output_path, null, 'converted');
-                } else if (statusElem) {
-                    statusElem.className = 'convert-status success';
-                    const newFileName = data.output_path;
-                    statusElem.innerHTML = `转换成功: ${newFileName}！<span data-path="${newFileName}">点击此处拷贝</span>`;
-                    statusElem.querySelector('span').onclick = (e) => copyFile(e.target.dataset.path, null, 'converted');
-                    statusElem.classList.remove('hidden');
-                } else {
-                     showToast(`✅ 转换成功: ${data.output_path}`);
-                }
-            } else {
-                throw new Error(data.message);
-            }
+                if(shouldCopy) { copyFile(data.output_path, null, 'converted'); }
+                else if (statusElem) { statusElem.className = 'convert-status success'; const newFileName = data.output_path; statusElem.innerHTML = `转换成功: ${newFileName}！<span data-path="${newFileName}">点击此处拷贝</span>`; statusElem.querySelector('span').onclick = (e) => copyFile(e.target.dataset.path, null, 'converted'); statusElem.classList.remove('hidden'); }
+                else { showToast(`✅ 转换成功: ${data.output_path}`); }
+            } else { throw new Error(data.message); }
         } catch (err) {
             const errorMessage = err.message || '网络或服务器错误';
-            if (statusElem) {
-                 statusElem.className = 'convert-status error';
-                 statusElem.textContent = `转换失败: ${errorMessage}`;
-                 statusElem.classList.remove('hidden');
-            } else {
-                 showToast(`❌ 转换失败: ${errorMessage}`);
-            }
+            if (statusElem) { statusElem.className = 'convert-status error'; statusElem.textContent = `转换失败: ${errorMessage}`; statusElem.classList.remove('hidden'); }
+            else { showToast(`❌ 转换失败: ${errorMessage}`); }
         } finally {
-             if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '开始转换';
-             }
+             if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '开始转换'; }
         }
     }
 
     // --- Helper Functions ---
-    function createMediaElement(item) {
-        let mediaElement;
-        if (item.type === '.webm' || item.type === '.mp4') {
-            mediaElement = document.createElement('video');
-            mediaElement.src = item.url;
-            mediaElement.autoplay = true;
-            mediaElement.loop = true;
-            mediaElement.muted = true;
-            mediaElement.playsInline = true;
-        } else {
-            mediaElement = document.createElement('img');
-            mediaElement.src = item.url;
-            mediaElement.loading = 'lazy';
-        }
-        mediaElement.alt = item.filename;
-        return mediaElement;
-    }
-
-    function setupSliderSync(sliderId, inputId, displayId) {
-        const slider = document.getElementById(sliderId);
-        const input = document.getElementById(inputId);
-        const display = document.getElementById(displayId);
-        slider.addEventListener('input', () => {
-            input.value = slider.value;
-            if (display) display.textContent = slider.value;
-        });
-        input.addEventListener('input', () => {
-            slider.value = input.value;
-            if (display) display.textContent = input.value;
-        });
-    }
-
-    function formatBytes(bytes, decimals = 2) {
-        if (!bytes || bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
-
-    let toastTimer;
-    function showToast(message) {
-        clearTimeout(toastTimer);
-        copyToast.textContent = message;
-        copyToast.classList.add('show');
-        toastTimer = setTimeout(() => {
-            copyToast.classList.remove('show');
-        }, 3000);
-    }
+    function createMediaElement(item) { let mediaElement; if (item.type === '.webm' || item.type === '.mp4') { mediaElement = document.createElement('video'); mediaElement.src = item.url; mediaElement.autoplay = true; mediaElement.loop = true; mediaElement.muted = true; mediaElement.playsInline = true; } else { mediaElement = document.createElement('img'); mediaElement.src = item.url; mediaElement.loading = 'lazy'; } mediaElement.alt = item.filename; return mediaElement; }
+    function setupSliderSync(sliderId, inputId, displayId) { const slider = document.getElementById(sliderId); const input = document.getElementById(inputId); const display = document.getElementById(displayId); slider.addEventListener('input', () => { input.value = slider.value; if(display) display.textContent = slider.value; }); input.addEventListener('input', () => { slider.value = input.value; if(display) display.textContent = input.value; }); }
+    function formatBytes(bytes, decimals = 2) { if (!bytes || bytes === 0) return '0 Bytes'; const k = 1024; const dm = decimals < 0 ? 0 : decimals; const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']; const i = Math.floor(Math.log(bytes) / Math.log(k)); return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]; }
+    function showToast(message) { clearTimeout(window.toastTimer); copyToast.textContent = message; copyToast.classList.add('show'); window.toastTimer = setTimeout(() => { copyToast.classList.remove('show'); }, 3000); }
     
-    // --- Modal Logic --- (unchanged)
-    const modal = document.getElementById('settings-modal');
-    const openModalBtn = document.getElementById('open-settings-modal');
-    const closeModalBtn = document.getElementById('close-settings-modal');
-    const indexForm = document.getElementById('index-form');
-    const indexResults = document.getElementById('index-results');
+    // --- Modal Logic ---
+    const modal = document.getElementById('settings-modal'); const openModalBtn = document.getElementById('open-settings-modal'); const closeModalBtn = document.getElementById('close-settings-modal'); const indexForm = document.getElementById('index-form'); const indexResults = document.getElementById('index-results');
     function openModal() { modal.classList.add('is-open'); }
     function closeModal() { modal.classList.remove('is-open'); }
-    openModalBtn.onclick = openModal;
-    closeModalBtn.onclick = closeModal;
-    modal.onclick = (event) => { if (event.target === modal) closeModal(); };
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+    openModalBtn.onclick = openModal; closeModalBtn.onclick = closeModal; modal.onclick = (event) => { if (event.target === modal) closeModal(); }; document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
     indexForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const imageDir = document.getElementById('image-dir').value;
         if (!imageDir) { alert('请输入图片文件夹路径!'); return; }
         const indexButton = document.getElementById('index-button');
-        indexButton.disabled = true;
-        indexButton.textContent = '处理中...';
-        indexResults.innerHTML = `<p>正在处理索引，请稍候...</p>`;
-        
+        indexButton.disabled = true; indexButton.textContent = '处理中...'; indexResults.innerHTML = `<p>正在处理索引，请稍候...</p>`;
         try {
-            const response = await fetch('/api/index', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ image_dir: imageDir })
-            });
+            const response = await fetch('/api/index', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ image_dir: imageDir }) });
             const data = await response.json();
-            if (data.status === 'success' && data.summary) {
-                indexResults.innerHTML = `<p style="color: var(--md-sys-success);">${data.summary.message}</p>`;
-            } else {
-                indexResults.innerHTML = `<p style="color: var(--md-sys-error);">${data.message}</p>`;
-            }
+            if (data.status === 'success' && data.summary) { indexResults.innerHTML = `<p style="color: var(--md-sys-success);">${data.summary.message}</p>`; }
+            else { indexResults.innerHTML = `<p style="color: var(--md-sys-error);">${data.message}</p>`; }
         } catch (error) {
             indexResults.innerHTML = `<p style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</p>`;
         } finally {
-            indexButton.disabled = false;
-            indexButton.textContent = '开始/更新索引';
+            indexButton.disabled = false; indexButton.textContent = '开始/更新索引';
         }
     });
 });
