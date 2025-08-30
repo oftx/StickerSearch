@@ -776,8 +776,26 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/index', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ image_dir: imageDir }) });
             const data = await response.json();
-            if (data.status === 'success' && data.summary) { indexResults.innerHTML = `<p style="color: var(--md-sys-success);">${data.summary.message}</p>`; }
-            else { indexResults.innerHTML = `<p style="color: var(--md-sys-error);">${data.message}</p>`; }
+            if (data.status === 'success' && data.summary) {
+                const s = data.summary;
+                let summaryHtml = `<p style="color: var(--md-sys-success);">${s.message}</p>`;
+
+                // 如果有任何变更，则显示详细列表
+                if (s.new || s.modified || s.deleted || s.moved) {
+                    summaryHtml += `
+                        <ul style="list-style: none; padding-left: 0; text-align: left; margin-top: 10px; font-size: 0.9rem;">
+                            <li><strong>新增:</strong> ${s.new}</li>
+                            <li><strong>修改:</strong> ${s.modified}</li>
+                            <li><strong>移动/重命名:</strong> ${s.moved}</li>
+                            <li><strong>删除:</strong> ${s.deleted}</li>
+                        </ul>
+                    `;
+                }
+                 summaryHtml += `<p style="margin-top: 10px;"><strong>当前索引总数: ${s.total}</strong></p>`;
+                indexResults.innerHTML = summaryHtml;
+            } else { 
+                indexResults.innerHTML = `<p style="color: var(--md-sys-error);">${data.message}</p>`; 
+            }
         } catch (error) {
             indexResults.innerHTML = `<p style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</p>`;
         } finally {

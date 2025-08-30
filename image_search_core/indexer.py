@@ -42,85 +42,129 @@ class ImageIndexer:
 
     def update(self):
         """主方法，执行完整的索引更新流程。"""
-        indexed_data = self._load_or_initialize_index()
-        new_paths, modified_paths, deleted_paths = self._scan_and_compare(indexed_data)
+        indexed_data, path_to_hash, hash_to_path = self._load_or_initialize_index()
+        
+        new, modified, deleted, moved = self._scan_and_compare(path_to_hash)
 
         summary = {
-            "new": len(new_paths),
-            "modified": len(modified_paths),
-            "deleted": len(deleted_paths),
+            "new": len(new),
+            "modified": len(modified),
+            "deleted": len(deleted),
+            "moved": len(moved),
             "total": 0,
             "message": ""
         }
 
-        if not new_paths and not modified_paths and not deleted_paths:
+        if not any([new, modified, deleted, moved]):
             summary["total"] = len(indexed_data.get('paths', []))
             summary["message"] = "文件无变化，索引已是最新。"
             print(summary["message"])
             return summary
 
-        print(f"\n检测结果: {len(new_paths)} 新增, {len(modified_paths)} 修改, {len(deleted_paths)} 删除。")
-        final_data = self._process_changes(indexed_data, new_paths, modified_paths, deleted_paths)
+        print(f"\n检测结果: {len(new)} 新增, {len(modified)} 修改, {len(moved)} 移动/重命名, {len(deleted)} 删除。")
+        final_data = self._process_changes(indexed_data, new, modified, deleted, moved)
         self._save_index(final_data)
         self._save_image_dir_to_config()
 
         summary["total"] = len(final_data.get('paths', []))
-        summary["message"] = f"索引更新成功！新增 {summary['new']}, 修改 {summary['modified']}, 删除 {summary['deleted']}。当前索引共 {summary['total']} 张图片。"
+        summary["message"] = f"索引更新成功！"
         return summary
 
     def _load_or_initialize_index(self):
         """
-        加载现有索引。
-        为保证内部处理一致性，无论文件中存储的是相对还是绝对路径，
-        本方法加载后一律转换成绝对路径供程序内部使用。
+        加载现有索引，并创建用于快速查找的辅助映射。
+        返回 (索引数据, 路径->哈希映射, 哈希->路径映射)。
         """
         if not os.path.exists(self.index_file):
             print(f"未找到索引文件，将创建一个新索引。")
-            return {"features": [], "paths": [], "hashes": [], "base_dir": None}
+            return {"features": [], "paths": [], "hashes": []}, {}, {}
 
         print(f"正在加载现有索引 '{self.index_file}'...")
         try:
             data = np.load(self.index_file, allow_pickle=True)
-            base_dir = str(data['base_dir'][0]) if 'base_dir' in data else None
             resolved_paths = [os.path.abspath(p) for p in data['paths']]
+            hashes = list(data['hashes']) if 'hashes' in data else [None] * len(resolved_paths)
 
-            return {
+            indexed_data = {
                 "features": list(data['features']),
                 "paths": resolved_paths,
-                "hashes": list(data['hashes']) if 'hashes' in data else [None] * len(resolved_paths),
-                "base_dir": base_dir
+                "hashes": hashes
             }
+            
+            path_to_hash = {path: h for path, h in zip(resolved_paths, hashes)}
+            hash_to_path = {h: path for path, h in zip(resolved_paths, hashes) if h is not None}
+            
+            return indexed_data, path_to_hash, hash_to_path
         except Exception as e:
             print(f"警告：加载索引文件失败，将创建一个新索引。错误: {e}")
-            return {"features": [], "paths": [], "hashes": [], "base_dir": None}
+            return {"features": [], "paths": [], "hashes": []}, {}, {}
 
-    def _scan_and_compare(self, indexed_data: dict):
+    def _scan_and_compare(self, indexed_path_to_hash: dict):
         """
-        扫描磁盘文件，并与索引数据比对。
-        本方法内部统一使用绝对路径进行比较，以确保准确性。
+        扫描磁盘文件，并与索引数据比对，智能地检测出移动/重命名的文件。
         """
-        indexed_path_to_hash = {path: h for path, h in zip(indexed_data['paths'], indexed_data['hashes'])}
-
-        current_paths = set()
+        # 1. 从磁盘获取当前所有文件的绝对路径
+        current_paths_on_disk = set()
         for ext in IMAGE_EXTENSIONS:
             found_files = glob.glob(os.path.join(self.image_dir, '**', ext), recursive=True)
-            for path in found_files:
-                current_paths.add(os.path.abspath(path))
+            current_paths_on_disk.update(os.path.abspath(path) for path in found_files)
 
-        new, modified = [], []
-        for path in tqdm(current_paths, desc="检测文件变更"):
+        indexed_paths = set(indexed_path_to_hash.keys())
+
+        # 2. 初步分类
+        potentially_new_paths = current_paths_on_disk - indexed_paths
+        potentially_deleted_paths = indexed_paths - current_paths_on_disk
+        unchanged_or_modified_paths = current_paths_on_disk.intersection(indexed_paths)
+
+        # 3. 找出内容被修改的文件
+        modified = []
+        for path in tqdm(unchanged_or_modified_paths, desc="检测文件修改"):
             current_hash = calculate_hash(path)
             if not current_hash: continue
-            if path not in indexed_path_to_hash:
-                new.append(path)
-            elif current_hash != indexed_path_to_hash[path]:
+            if current_hash != indexed_path_to_hash.get(path):
                 modified.append(path)
+        
+        # 4. 智能检测移动/重命名的文件
+        moved, truly_new = [], []
+        deleted_hash_to_path = {
+            indexed_path_to_hash[path]: path 
+            for path in potentially_deleted_paths 
+            if indexed_path_to_hash.get(path) is not None
+        }
 
-        deleted = set(indexed_path_to_hash.keys()) - current_paths
-        return new, modified, list(deleted)
+        for path in tqdm(potentially_new_paths, desc="检测新增/移动文件"):
+            current_hash = calculate_hash(path)
+            if not current_hash: continue
 
-    def _process_changes(self, indexed_data, new_paths, modified_paths, deleted_paths):
-        # 1. 移除已删除和已修改的条目
+            if current_hash in deleted_hash_to_path:
+                # 发现移动/重命名文件！
+                old_path = deleted_hash_to_path[current_hash]
+                moved.append({'old_path': old_path, 'new_path': path})
+                del deleted_hash_to_path[current_hash] # 标记为已找到
+            else:
+                # 这是一个真正的新文件
+                truly_new.append(path)
+        
+        # 5. 字典中剩下的是真正被删除的文件
+        truly_deleted = list(deleted_hash_to_path.values())
+        
+        return truly_new, modified, truly_deleted, moved
+
+    def _process_changes(self, indexed_data, new_paths, modified_paths, deleted_paths, moved_files):
+        path_to_idx = {path: i for i, path in enumerate(indexed_data['paths'])}
+
+        # 1. 处理移动文件：仅更新路径，不重新提取特征（核心优化点）
+        if moved_files:
+            print("正在为移动的文件更新路径...")
+            for move_info in moved_files:
+                old_path, new_path = move_info['old_path'], move_info['new_path']
+                if old_path in path_to_idx:
+                    idx = path_to_idx[old_path]
+                    indexed_data['paths'][idx] = new_path
+            # 路径已变，重建映射
+            path_to_idx = {path: i for i, path in enumerate(indexed_data['paths'])}
+
+        # 2. 准备一个干净的数据列表，移除待删除和待修改的旧条目
         final_data = {"features": [], "paths": [], "hashes": []}
         paths_to_remove = set(modified_paths + deleted_paths)
         for i, path in enumerate(indexed_data['paths']):
@@ -129,7 +173,7 @@ class ImageIndexer:
                 final_data["paths"].append(path)
                 final_data["hashes"].append(indexed_data["hashes"][i])
 
-        # 2. 为新增和修改的图片提取特征并添加
+        # 3. 为真正新增和内容修改过的文件提取特征
         paths_to_process = new_paths + modified_paths
         if not paths_to_process:
             return final_data
@@ -142,28 +186,22 @@ class ImageIndexer:
                     image = None
                     path_lower = path.lower()
 
-                    # 如果是视频或GIF，使用OpenCV提取一个随机帧
                     if path_lower.endswith(('.webm', '.mp4', '.gif')):
                         cap = cv2.VideoCapture(path)
                         if cap.isOpened():
                             total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                            # 只有在视频/GIF有多于1帧时才进行随机选择
                             if total_frames > 0:
-                                # 生成一个 0 到 total_frames-1 之间的随机索引
                                 random_frame_index = random.randint(0, total_frames - 1)
-                                # 设置视频捕获对象到随机帧的位置
                                 cap.set(cv2.CAP_PROP_POS_FRAMES, random_frame_index)
                                 
                                 ret, frame = cap.read()
                                 if ret:
-                                    # OpenCV 读取的颜色通道是 BGR, Pillow/模型需要 RGB
                                     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                                     image = Image.fromarray(frame_rgb)
                             cap.release()
                         else:
                              print(f"\n警告：无法使用 OpenCV 打开文件 {path}，已跳过。")
                              continue
-                    # 否则，作为普通静态图片处理
                     else:
                         image = Image.open(path).convert("RGB")
 
@@ -183,7 +221,6 @@ class ImageIndexer:
     def _save_index(self, final_data: dict):
         """
         保存最终的索引数据到文件。
-        根据 image_dir 是否在当前工作目录下，决定使用相对路径或绝对路径保存。
         """
         if not final_data["paths"]:
             if os.path.exists(self.index_file):
