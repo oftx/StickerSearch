@@ -51,8 +51,8 @@
         .keyword-tag:hover { background-color: var(--md-sys-error-container); color: var(--md-sys-on-error-container); text-decoration: line-through; transform: translateY(-2px); }
         #similarity-condition-display .keyword-tag { background-color: var(--md-sys-success-container); color: var(--md-sys-on-success-container); }
         #similarity-condition-display .keyword-tag:hover { background-color: var(--md-sys-error-container); }
-        .results-container { width: 90%; max-width: 1400px; margin: 80px auto 20px; padding: 0 24px; }
-        .search-results { column-count: 5; column-gap: 16px; }
+        .results-container { width: 90%; max-width: 1400px; margin: 80px auto 20px; padding: 0 24px; text-align: center; }
+        .search-results { column-count: 5; column-gap: 16px; text-align: left; }
         .result-item { margin: 0 0 16px; background-color: var(--md-sys-surface); border-radius: var(--border-radius-medium); overflow: hidden; box-shadow: var(--md-sys-shadow); transition: transform 0.2s var(--transition-easing), box-shadow 0.2s var(--transition-easing); position: relative; break-inside: avoid; margin-bottom: 16px; }
         .result-item-clickable { cursor: pointer; }
         .result-item:hover { transform: translateY(-6px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1); }
@@ -162,6 +162,7 @@
         <div class="status-message" id="status-message"></div>
         <div class="results-container">
             <div class="search-results" id="search-results"></div>
+            <button id="load-more-btn" class="action-button secondary-button hidden" style="margin-top: 24px; width: auto;">加载更多</button>
         </div>
     </main>
 
@@ -286,7 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let popoverHideTimer = null;
     const isLocalAccess = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     let negativeKeywords = [];
-    let similarityCondition = null; // Will store { path: '...', filename: '...' }
+    let similarityCondition = null; 
+    let currentOffset = 0;
+    let lastSearchType = null;
+    let lastSearchParams = {};
 
     // --- Element Caching ---
     const views = {
@@ -295,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         convertWebp: document.getElementById('view-convert-webp'),
         convertWebm: document.getElementById('view-convert-webm'),
     };
+    const settingsBtn = document.getElementById('open-settings-modal');
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('query');
     const searchResults = document.getElementById('search-results');
@@ -319,6 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const webpConvertStatus = document.getElementById('webp-convert-status');
     const webmConvertForm = document.getElementById('webm-convert-form');
     const webmConvertStatus = document.getElementById('webm-convert-status');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+
+    // --- Initial Setup ---
+    if (!isLocalAccess) {
+        settingsBtn.classList.add('hidden');
+    }
 
     // --- View Management & Rendering ---
     function showView(viewName, data = null) {
@@ -338,9 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderResults(results) {
-        searchResults.innerHTML = '';
-        if (results.length === 0) {
+    function renderResults(results, isAppending = false) {
+        if (!isAppending) {
+            searchResults.innerHTML = '';
+        }
+        if (results.length === 0 && !isAppending) {
             statusMessage.textContent = '未找到匹配的图片。';
             return;
         }
@@ -549,6 +562,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    loadMoreBtn.addEventListener('click', () => {
+        const topK = parseInt(document.getElementById('top_k').value, 10);
+        currentOffset += topK;
+        performSearch(true);
+    });
+
     document.getElementById('back-to-results-btn').addEventListener('click', () => showView('main'));
     document.getElementById('back-from-webp-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
     document.getElementById('back-from-webm-convert-btn').addEventListener('click', () => showView('detail', currentDetailItem));
@@ -566,48 +585,92 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSliderSync('webm-scale-slider', 'webm-scale-input', 'webm-scale-display');
 
     // --- API Calls & Logic ---
-    async function handleSearch(e) {
+    function handleSearch(e) {
         if(e) e.preventDefault();
         const query = searchInput.value;
-        const negativeQueryString = negativeKeywords.join(',');
-        const topK = document.getElementById('top_k').value;
-        if (!query.trim() && !similarityCondition) { alert('请输入搜索描述或添加一个相似图片!'); return; }
-        statusMessage.textContent = '正在搜索中...';
-        searchResults.innerHTML = '';
+        if (!query.trim() && !similarityCondition) {
+            alert('请输入搜索描述或添加一个相似图片!');
+            return;
+        }
+        
+        currentOffset = 0;
+        lastSearchType = 'text';
+        lastSearchParams = {
+            query: query,
+            top_k: document.getElementById('top_k').value,
+            negative_query: negativeKeywords.join(','),
+            similar_image_path: similarityCondition ? similarityCondition.path : ''
+        };
+        performSearch(false);
+    }
+    
+    function handleFindSimilar(path) {
+        if (!path) return;
+        searchInput.value = `[相似于: ${path.split('/').pop()}]`;
+
+        currentOffset = 0;
+        lastSearchType = 'similar';
+        lastSearchParams = {
+            path: path,
+            top_k: document.getElementById('top_k').value,
+            negative_query: negativeKeywords.join(',')
+        };
+        performSearch(false);
+    }
+
+    async function performSearch(isLoadMore = false) {
+        if (!isLoadMore) {
+            searchResults.innerHTML = '';
+            statusMessage.textContent = '正在搜索中...';
+        } else {
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.textContent = '加载中...';
+        }
         searchForm.querySelector('button').disabled = true;
+        loadMoreBtn.classList.add('hidden');
+
         try {
-            let apiUrl = `/api/search?query=${encodeURIComponent(query)}&top_k=${topK}`;
-            if (negativeQueryString) apiUrl += `&negative_query=${encodeURIComponent(negativeQueryString)}`;
-            if (similarityCondition) apiUrl += `&similar_image_path=${encodeURIComponent(similarityCondition.path)}`;
+            let apiUrl;
+            const params = new URLSearchParams(lastSearchParams);
+            if (lastSearchType === 'text') {
+                apiUrl = `/api/search?${params.toString()}`;
+            } else if (lastSearchType === 'similar') {
+                apiUrl = `/api/search_by_image?${params.toString()}`;
+            } else {
+                return;
+            }
+
+            if (isLoadMore) {
+                apiUrl += `&offset=${currentOffset}`;
+            }
+
             const response = await fetch(apiUrl);
             const data = await response.json();
-            if (data.status === 'success') { statusMessage.textContent = ''; renderResults(data.results); }
-            else { statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>搜索失败:</strong> ${data.message}</span>`; }
+
+            if (data.status === 'success') {
+                if (!isLoadMore) statusMessage.textContent = '';
+                renderResults(data.results, isLoadMore);
+                
+                const topK = parseInt(lastSearchParams.top_k, 10);
+                if (data.results.length >= topK) {
+                    loadMoreBtn.classList.remove('hidden');
+                } else {
+                    loadMoreBtn.classList.add('hidden');
+                }
+            } else {
+                statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>搜索失败:</strong> ${data.message}</span>`;
+            }
         } catch (error) {
             statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</span>`;
         } finally {
             searchForm.querySelector('button').disabled = false;
+            if (isLoadMore) {
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.textContent = '加载更多';
+            }
         }
     }
-    
-    async function handleFindSimilar(path) {
-        const topK = document.getElementById('top_k').value;
-        const negativeQueryString = negativeKeywords.join(',');
-        if (!path) return;
-        statusMessage.textContent = `正在查找与 ${path.split('/').pop()} 相似的图片...`;
-        searchResults.innerHTML = '';
-        searchInput.value = `[相似于: ${path.split('/').pop()}]`;
-        try {
-            let apiUrl = `/api/search_by_image?path=${encodeURIComponent(path)}&top_k=${topK}`;
-            if (negativeQueryString) apiUrl += `&negative_query=${encodeURIComponent(negativeQueryString)}`;
-            const response = await fetch(apiUrl);
-            const data = await response.json();
-            if (data.status === 'success') { statusMessage.textContent = ''; renderResults(data.results); }
-            else { statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>查找相似失败:</strong> ${data.message}</span>`; }
-        } catch (error) {
-            statusMessage.innerHTML = `<span style="color: var(--md-sys-error);"><strong>网络或服务器错误:</strong> ${error}</span>`;
-        }
-    }
+
 
     async function handleToggleRelatives() {
         if (!currentDetailItem) return;

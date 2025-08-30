@@ -149,8 +149,9 @@ def api_search_images():
     """API 端点：执行文本语义搜索，支持混合图片条件。"""
     query = request.args.get('query')
     negative_query = request.args.get('negative_query')
-    similar_image_path_rel = request.args.get('similar_image_path') # <-- 新增
+    similar_image_path_rel = request.args.get('similar_image_path')
     top_k = request.args.get('top_k', 20, type=int)
+    offset = request.args.get('offset', 0, type=int) # <-- 新增
 
     if not query and not similar_image_path_rel:
         return jsonify({"status": "error", "message": "缺少 'query' 或 'similar_image_path' URL 参数。"}), 400
@@ -169,7 +170,8 @@ def api_search_images():
             query=query, 
             top_k=top_k, 
             negative_query=negative_query, 
-            similar_image_path=similar_image_path_abs # <-- 新增
+            similar_image_path=similar_image_path_abs,
+            offset=offset # <-- 新增
         )
         detailed_results = _process_results(results, image_base_dir)
         return jsonify({"status": "success", "results": detailed_results})
@@ -180,8 +182,9 @@ def api_search_images():
 def api_search_by_image():
     """API 端点：执行以图搜图，支持排除关键词。"""
     path = request.args.get('path')
-    negative_query = request.args.get('negative_query') # <-- 新增
+    negative_query = request.args.get('negative_query')
     top_k = request.args.get('top_k', 20, type=int)
+    offset = request.args.get('offset', 0, type=int) # <-- 新增
 
     if not path:
         return jsonify({"status": "error", "message": "缺少 'path' URL 参数。"}), 400
@@ -197,7 +200,8 @@ def api_search_by_image():
         results = searcher.search_by_image(
             image_path=absolute_path, 
             top_k=top_k,
-            negative_query=negative_query # <-- 新增
+            negative_query=negative_query,
+            offset=offset # <-- 新增
         )
         detailed_results = _process_results(results, image_base_dir)
         return jsonify({"status": "success", "results": detailed_results})

@@ -28,7 +28,7 @@ class ImageSearcher:
         self.normalized_image_features = F.normalize(self.image_features, p=2, dim=-1)
         print(f"索引加载完毕，包含 {len(self.image_paths)} 张图片。")
 
-    def search(self, query: str, top_k: int = 5, negative_query: str = None, similar_image_path: str = None):
+    def search(self, query: str, top_k: int = 5, negative_query: str = None, similar_image_path: str = None, offset: int = 0):
         """
         根据文本和/或图片进行语义搜索。
         """
@@ -78,16 +78,24 @@ class ImageSearcher:
                     negative_scores = (normalized_neg_text_features @ self.normalized_image_features.T).squeeze()
                     final_scores = positive_scores - negative_scores
                 
-        # 4. 获取 Top K 结果
-        top_k = min(top_k, len(self.image_paths))
-        top_results = torch.topk(final_scores, k=top_k)
+        # 4. 获取 Top K 结果（支持偏移量）
+        total_results_to_fetch = min(top_k + offset, len(self.image_paths))
+        if total_results_to_fetch <= offset:
+            return []
+            
+        top_results = torch.topk(final_scores, k=total_results_to_fetch)
         
         scores = top_results.values.cpu().numpy()
         indices = top_results.indices.cpu().numpy()
         
-        return [{"path": self.image_paths[idx], "score": float(score)} for idx, score in zip(indices, scores)]
+        # 应用偏移量
+        paginated_indices = indices[offset:]
+        paginated_scores = scores[offset:]
 
-    def search_by_image(self, image_path: str, top_k: int = 5, negative_query: str = None):
+        return [{"path": self.image_paths[idx], "score": float(score)} for idx, score in zip(paginated_indices, paginated_scores)]
+
+
+    def search_by_image(self, image_path: str, top_k: int = 5, negative_query: str = None, offset: int = 0):
         """
         根据给定的图片，返回最相似的前 K 张图片，并应用排除关键词。
         """
@@ -119,17 +127,21 @@ class ImageSearcher:
                     negative_scores = (normalized_neg_features @ self.normalized_image_features.T).squeeze()
                     final_scores = positive_scores - negative_scores
 
-        # 获取 Top K+1 结果 (因为自身匹配度最高)
-        top_k_plus_one = min(top_k + 1, len(self.image_paths))
-        top_results = torch.topk(final_scores, k=top_k_plus_one)
+        # 获取足够多的结果以支持分页和排除自身
+        # 请求 top_k + offset + 1 个结果以确保在排除自身后仍有足够的数据
+        total_results_to_fetch = min(top_k + offset + 1, len(self.image_paths))
+        top_results = torch.topk(final_scores, k=total_results_to_fetch)
 
         scores = top_results.values.cpu().numpy()
         indices = top_results.indices.cpu().numpy()
 
-        # 排除自身并返回 Top K
-        results = []
+        # 排除自身
+        all_results = []
         for idx, score in zip(indices, scores):
-            if idx != query_idx and len(results) < top_k:
-                results.append({"path": self.image_paths[idx], "score": float(score)})
+            if idx != query_idx:
+                all_results.append({"path": self.image_paths[idx], "score": float(score)})
         
-        return results
+        # 应用偏移量和 top_k
+        start = offset
+        end = offset + top_k
+        return all_results[start:end]
